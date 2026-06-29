@@ -1,0 +1,8 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Generated artefacts (regenerate with make_synthetic.py / speed_camera.py)
+clips/
+out/
