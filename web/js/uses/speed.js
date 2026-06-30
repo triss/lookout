@@ -1,6 +1,10 @@
 import { defineUse } from "../engine/use.js";
+import { mean, percentile, round1 } from "../engine/derive.js";
 
 // Vehicle-speed use for the browser pipeline.
+// Built from components: GroundPlaneHomography locate (needs calibration, so
+// measure surfaces a "needs calibration" stub until the solver lands) + mean /
+// 85th-percentile aggregation, which is fully implemented over observations.
 export default defineUse({
   id: "speed",
   name: "Vehicle speed",
@@ -18,6 +22,23 @@ export default defineUse({
     "Mean and 85th-percentile speed",
     "Speed event timestamps",
   ],
-  // TODO measure(track, ctx):  ground-plane displacement ÷ time → mph
-  // TODO deriveFindings(observations): count, mean, 85th-percentile speed
+
+  // Ground-plane displacement ÷ Δt → mph. The locate backend throws until the
+  // view is calibrated; once it returns a metric position this becomes real.
+  measure(track, ctx, { locate }) {
+    const pos = locate.locate(track, ctx); // GroundPlaneHomography: throws (stub)
+    return {
+      speed_mph: pos.speed_mph,
+      direction: track.velocity.x >= 0 ? "right" : "left",
+    };
+  },
+
+  deriveFindings(observations) {
+    const speeds = observations.map((o) => o.speed_mph).filter((n) => typeof n === "number");
+    return {
+      count: speeds.length,
+      mean_mph: round1(mean(speeds)),
+      p85_mph: round1(percentile(speeds, 85)),
+    };
+  },
 });

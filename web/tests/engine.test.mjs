@@ -1,0 +1,66 @@
+// Headless engine tests. No DOM, no camera — proves the components compose
+// into the uses. Run:  node web/tests/engine.test.mjs
+import { getUse } from "../js/uses/index.js";
+import { createPipeline } from "../js/engine/pipeline.js";
+import { percentile, mean, sessionize } from "../js/engine/derive.js";
+import { createLocator } from "../js/engine/locate.js";
+
+let pass = 0, fail = 0;
+const eq = (name, got, want) => {
+  const ok = JSON.stringify(got) === JSON.stringify(want);
+  console.log((ok ? "PASS " : "FAIL ") + name + "  got=" + JSON.stringify(got) + (ok ? "" : " want=" + JSON.stringify(want)));
+  ok ? pass++ : fail++;
+};
+const truthy = (name, cond, info) => { console.log((cond ? "PASS " : "FAIL ") + name + (info ? "  " + info : "")); cond ? pass++ : fail++; };
+
+// derive helpers
+eq("percentile p50 of 1..4", percentile([1, 2, 3, 4], 50), 2.5);
+eq("percentile p85", percentile([10, 20, 30, 40, 50], 85), 44);
+eq("mean", mean([2, 4, 6]), 4);
+truthy("sessionize splits on gap", sessionize([{ t: 0 }, { t: 1000 }, { t: 9000 }]).length === 2);
+
+// BearingOnly locate (real)
+const bo = createLocator("BearingOnly", { hfov: 60 });
+eq("BearingOnly centre", Math.round(bo.locate({ ground: { x: 160 } }, { width: 320 }).bearingDeg), 0);
+eq("BearingOnly right edge", Math.round(bo.locate({ ground: { x: 320 } }, { width: 320 }).bearingDeg), 30);
+
+// COUNT end-to-end through the real pipeline (synthetic moving block)
+const W = 320, H = 240;
+function frame(blockX) {
+  const g = new Uint8ClampedArray(W * H);
+  for (let y = 80; y < 160; y++) for (let x = blockX; x < blockX + 80 && x < W; x++) g[y * W + x] = 255;
+  return g;
+}
+const cp = createPipeline(getUse("count"));
+let t = 0;
+for (let bx = 80; bx <= 240; bx += 8) cp.process(frame(bx), { width: W, height: H, t: (t += 50) });
+const cf = cp.findings().value;
+truthy("count: exactly 1 crossing", cf.crossings === 1, JSON.stringify(cf));
+truthy("count: direction = right", cf.byDirection.right === 1 && cf.byDirection.left === 0, JSON.stringify(cf.byDirection));
+
+// SPEED: measure stubs (needs calibration), deriveFindings real
+const speed = getUse("speed");
+let speedThrew = false;
+try { speed.measure({ ground: { x: 1 }, velocity: { x: 1 } }, { width: W }, { locate: createLocator("GroundPlaneHomography") }); }
+catch (e) { speedThrew = /calibration/.test(e.message); }
+truthy("speed.measure throws needs-calibration", speedThrew);
+eq("speed.deriveFindings p85", speed.deriveFindings([{ speed_mph: 20 }, { speed_mph: 30 }, { speed_mph: 40 }]).p85_mph, 37);
+
+// DWELL: real findings from presence samples
+const df = getUse("dwell").deriveFindings([{ t: 0 }, { t: 500 }, { t: 1000 }, { t: 9000 }, { t: 9500 }]);
+truthy("dwell: 2 visits", df.visits === 2, JSON.stringify(df));
+
+// WILDLIFE: measure stubs via KnownSizeRanger
+let wlThrew = false;
+try { getUse("wildlife").measure({ ground: { x: 1 } }, { width: W }, { locate: createLocator("KnownSizeRanger") }); }
+catch (e) { wlThrew = /size reference/.test(e.message); }
+truthy("wildlife.measure throws needs-size-reference", wlThrew);
+
+// ENVIRONMENT: change-mode measure stubs, findings timeline real
+let envThrew = false;
+try { getUse("environment").measure(); } catch (e) { envThrew = /change-mode/.test(e.message); }
+truthy("environment.measure throws change-mode", envThrew);
+eq("environment.deriveFindings timeline len", getUse("environment").deriveFindings([{ t: 1, change_pct: 5 }]).timeline.length, 1);
+
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

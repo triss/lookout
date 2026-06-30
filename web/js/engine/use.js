@@ -2,9 +2,12 @@
 //
 // Engine pipeline:  detect difference → track → (classify) → locate → derive
 //
-// A use declares which sensing mode and locate backend it needs, what
-// measurements it derives, and how to turn observations into findings.
-// These are STUBS: measure() and deriveFindings() throw until implemented.
+// A use is COMPOSED from engine components: it names a locate backend (resolved
+// by the pipeline and handed to measure() as deps.locate) and supplies the
+// glue — measure() turns a track into a measurement, deriveFindings() turns the
+// observation buffer into findings (built from engine/derive.js helpers).
+// measure() may return null (a detection that yields no measurement) or throw
+// (a stub / "needs calibration"); both are handled by the pipeline.
 
 /**
  * @typedef {Object} UseSpec
@@ -14,8 +17,8 @@
  * @property {"motion"|"change"} mode  fast motion events, or slow change detection
  * @property {string}   locate         locate-backend id (see README "How it works")
  * @property {string[]} measurements   fields this use derives per event
- * @property {(track:any, ctx:any)=>object} [measure]    track → measurement   [stub]
- * @property {(observations:any[])=>object} [deriveFindings] observations → shareable findings [stub]
+ * @property {(track:any, ctx:any, deps:{locate:any})=>(object|null)} [measure]  track → measurement (null = none, throw = stub)
+ * @property {(observations:any[])=>object} [deriveFindings] observations → shareable findings
  */
 
 const registry = new Map();

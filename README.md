@@ -66,14 +66,23 @@ Under `web/`:
 - `web/check.html` — browser capability probe.
   Reports which required APIs exist on *this* device and measures the camera's
   real resolution + frame rate. **Run this first on any candidate phone.**
-- `web/index.html` — app scaffold: a live capture → pixels → overlay loop with the
-  pipeline stages stubbed as seams, including the pluggable locate backend.
+- `web/index.html` — app scaffold: live capture feeds the engine pipeline and
+  the "Engine readout" panel shows the active use's contract and live output.
+- `web/js/engine/` — the engine, as composable components: `gray`, `detect`
+  (motion), `track` (ground-contact), `locate` (pluggable backends — only
+  `BearingOnly` is implemented; the rest throw "needs calibration/reference"),
+  `derive` (pure aggregation helpers) and `pipeline` (composes them per use).
+- `web/js/uses/` — each use is **built from those components**: it names a
+  locate backend and supplies `measure()` / `deriveFindings()`. `count` is
+  fully implemented; others have real findings but stub the measurement that
+  needs calibration, an object-size reference, or the slow-change pipeline.
+- `web/tests/engine.test.mjs` — headless test (`node web/tests/engine.test.mjs`),
+  including the count pipeline end-to-end on synthetic frames.
 - `web/pipeline.html` plus `web/pipeline-*.html` — plain-language pages for each
   pipeline technique, each with a small browser demo and links back to the code.
 - `web/speed.html`, `web/count.html`, `web/dwell.html`, `web/wildlife.html`,
-  `web/environment.html` — one page per potential engine use. These pages are
-  use stubs: they declare the sensing mode, locate backend, setup needs and
-  finding outputs before the measurement logic exists.
+  `web/environment.html` — one page per engine use: sensing mode, locate
+  backend, setup needs and finding outputs.
 - `web/css/`, `web/js/` — split styles and scripts; the check-page JS is strict
   ES5 so the checker itself runs on the old browsers it assesses.
 

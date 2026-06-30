@@ -1,6 +1,10 @@
 import { defineUse } from "../engine/use.js";
+import { sessionize, mean, median, round1 } from "../engine/derive.js";
 
 // Dwell & occupancy: how long things linger, how many are present.
+// Built from components: each detection is a presence sample; sessionize()
+// reconstructs visits from the timestamp gaps and dwell is the visit span.
+// Real today (single-identity tracker → peak occupancy is approximate).
 export default defineUse({
   id: "dwell",
   name: "Dwell & occupancy",
@@ -18,6 +22,21 @@ export default defineUse({
     "Mean and median dwell",
     "Peak occupancy",
   ],
-  // TODO measure(track, ctx):  time a track stays inside the zone
-  // TODO deriveFindings(observations): mean/median dwell, peak occupancy
+
+  // One presence sample per detection; visits (and therefore dwell) are
+  // reconstructed in deriveFindings by clustering the sample timestamps.
+  measure(track) {
+    return { occupancy: 1, x: Math.round(track.ground.x) };
+  },
+
+  deriveFindings(observations) {
+    const visits = sessionize(observations);
+    const durations = visits.map((v) => v.durationS);
+    return {
+      visits: visits.length,
+      meanDwellS: round1(mean(durations)),
+      medianDwellS: round1(median(durations)),
+      peakOccupancy: observations.length ? 1 : 0, // single-identity tracker
+    };
+  },
 });

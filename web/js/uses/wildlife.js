@@ -1,6 +1,10 @@
 import { defineUse } from "../engine/use.js";
+import { tally, byHour } from "../engine/derive.js";
 
 // Wildlife log: trail-cam style record of animal appearances.
+// Built from components: KnownSizeRanger locate (size band needs an object-size
+// reference, so measure surfaces a stub until that lands) + byHour / tally
+// aggregation, which is implemented over whatever appearances are logged.
 export default defineUse({
   id: "wildlife",
   name: "Wildlife log",
@@ -18,6 +22,19 @@ export default defineUse({
     "Rough size class",
     "Dwell time by visit",
   ],
-  // TODO measure(track, ctx):  size band + dwell; optional event still
-  // TODO deriveFindings(observations): appearances by hour, size distribution
+
+  // Size band needs the ranger backend; it throws until a size reference is
+  // configured. Once it returns a size, this records one appearance.
+  measure(track, ctx, { locate }) {
+    const ranged = locate.locate(track, ctx); // KnownSizeRanger: throws (stub)
+    return { size_class: ranged.size_class };
+  },
+
+  deriveFindings(observations) {
+    return {
+      appearances: observations.length,
+      byHour: byHour(observations),
+      sizeClasses: tally(observations, "size_class"),
+    };
+  },
 });
