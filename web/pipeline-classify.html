@@ -29,11 +29,11 @@
 
     <section aria-labelledby="codeHeading">
       <h2 id="codeHeading">Where the code is</h2>
-      <p>There is no classifier function yet. The current code represents future classification indirectly through preset metadata: <code>measurements</code>, <code>mode</code>, and <code>locate</code> fields in files under <code>web/js/presets/</code>. <code>definePreset()</code> in <code>web/js/engine/preset.js</code> registers those stubs and supplies stub <code>measure()</code> and <code>summarise()</code> functions.</p>
+      <p>There is no classifier function yet. The current code represents future classification indirectly through use metadata: <code>measurements</code>, <code>mode</code>, and <code>locate</code> fields in files under <code>web/js/uses/</code>. <code>defineUse()</code> in <code>web/js/engine/use.js</code> registers those stubs and supplies stub <code>measure()</code> and <code>deriveFindings()</code> functions.</p>
       <ul class="code-links">
         <li><a href="https://github.com/triss/lookout/blob/main/README.md">README.md: classification design note</a></li>
-        <li><a href="https://github.com/triss/lookout/tree/main/web/js/presets">web/js/presets/: preset-specific measurements</a></li>
-        <li><a href="https://github.com/triss/lookout/blob/main/web/js/engine/preset.js">web/js/engine/preset.js</a></li>
+        <li><a href="https://github.com/triss/lookout/tree/main/web/js/uses">web/js/uses/: use-specific measurements</a></li>
+        <li><a href="https://github.com/triss/lookout/blob/main/web/js/engine/use.js">web/js/engine/use.js</a></li>
       </ul>
     </section>
   </main>

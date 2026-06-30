@@ -1,10 +1,10 @@
-import { definePreset } from "../engine/preset.js";
+import { defineUse } from "../engine/use.js";
 
 // Counting / footfall: things crossing a line or entering a zone.
-export default definePreset({
+export default defineUse({
   id: "count",
   name: "Counts & footfall",
-  summary: "Count people, cyclists or vehicles crossing a line or entering a zone, with direction and flow rate.",
+  description: "Count people, cyclists or vehicles crossing a line or entering a zone, with direction and flow rate.",
   mode: "motion",
   locate: "BearingOnly",
   measurements: ["crossings", "direction", "flow_per_hour"],
@@ -19,5 +19,5 @@ export default definePreset({
     "Estimated flow per hour",
   ],
   // TODO measure(track, ctx):  detect line/zone crossing + direction
-  // TODO summarise(events):    totals per direction, hourly flow
+  // TODO deriveFindings(observations): totals per direction, hourly flow
 });

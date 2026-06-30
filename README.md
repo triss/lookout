@@ -3,13 +3,13 @@
 Point a recycled phone at one place and it logs what **comes, goes, and changes**
 there over time — people, animals, vehicles, the weather, the seasons. No neural
 net, runs on hardware from a drawer, keeps its data on-device, and shares only
-aggregates.
+findings.
 
 > A **difference engine for a place.** It watches one spot and writes down what
 > changed — from a car passing in half a second to a hedge growing over a season.
 
 > **Not surveillance.** Data stays on the device; what you ever *share* is
-> aggregate statistics, never footage. For traffic-calming evidence, wildlife
+> findings, not footage by default. For traffic-calming evidence, wildlife
 > notes, footfall, environmental change — the spirit of community monitoring,
 > built from e-waste.
 
@@ -35,7 +35,7 @@ timescales:
 
 From either, you hang **measurements** on a generic event: count, direction,
 dwell time, size, and — where the thing is on a calibrated plane — position and
-**speed**. Vehicle speed is just the first preset.
+**speed**. Vehicle speed is just the first use.
 
 ## How it works
 
@@ -72,8 +72,8 @@ Under `web/`:
   pipeline technique, each with a small browser demo and links back to the code.
 - `web/speed.html`, `web/count.html`, `web/dwell.html`, `web/wildlife.html`,
   `web/environment.html` — one page per potential engine use. These pages are
-  preset stubs: they declare the sensing mode, locate backend, setup needs and
-  aggregate outputs before the measurement logic exists.
+  use stubs: they declare the sensing mode, locate backend, setup needs and
+  finding outputs before the measurement logic exists.
 - `web/css/`, `web/js/` — split styles and scripts; the check-page JS is strict
   ES5 so the checker itself runs on the old browsers it assesses.
 
@@ -108,7 +108,7 @@ projection from that JSON is still TODO.
 - **Log on-device, richly:** event records (always; tiny), trigger stills (cheap),
   event clips (opt-in, budgeted, auto-rotated). Threshold-triggered, so an empty
   scene costs nothing.
-- **Share as aggregates, by one tap:** the Web Share API (`navigator.share({files})`)
+- **Share findings by one tap:** the Web Share API (`navigator.share({files})`)
   opens the native sheet → WhatsApp / Email. A pure client-side page can't transmit
   on its own — that tap is the (privacy-preserving) human-in-the-loop.
 - A number plate is personal data under GDPR. Keep identifying imagery on-device;
@@ -120,7 +120,7 @@ projection from that JSON is still TODO.
 - [ ] Generalise the event/measurement model beyond speed (count, dwell, direction)
 - [ ] Slow **change detection** mode (reference / time-lapse difference)
 - [ ] Robustness on messy footage: multiple objects, occlusion, warm-up trimming
-- [ ] On-device event log (IndexedDB) + one-tap aggregate share
+- [ ] On-device observation log (IndexedDB) + one-tap finding share
 - [ ] Optional lightweight classification (person / vehicle / animal)
 - [ ] Unattended capture for an always-on sensor
 - [ ] Workshop material so residents can build their own

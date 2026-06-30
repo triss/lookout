@@ -21,7 +21,7 @@
     <h1>Detect difference</h1>
     <p class="lead">How it works: compare one camera frame with another. Pixels that changed a lot probably belong to something moving, arriving, or leaving.</p>
     <p>Child version: it is like a spot-the-difference puzzle. The street is mostly the same, but the car moved, so that part lights up.</p>
-    <p>The web version turns each frame into greyscale first, because brightness changes are cheaper to compare than full colour. It subtracts the previous frame from the current frame. Small changes are ignored as noise; larger changes become a motion mask. The first demo shows that mask summarized as a smooth box. The second demo shows the mask itself.</p>
+    <p>The web version turns each frame into greyscale first, because brightness changes are cheaper to compare than full colour. It subtracts the previous frame from the current frame. Small changes are ignored as noise; larger changes become a motion mask. The first demo shows that mask as a smooth box. The second demo shows the mask itself.</p>
     <p class="note">The webcam demo asks for camera permission and works on HTTPS or localhost.</p>
 
     <section class="demo" data-downsample-camera aria-labelledby="downsampleHeading">

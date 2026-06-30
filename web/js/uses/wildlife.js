@@ -1,10 +1,10 @@
-import { definePreset } from "../engine/preset.js";
+import { defineUse } from "../engine/use.js";
 
 // Wildlife log: trail-cam style record of animal appearances.
-export default definePreset({
+export default defineUse({
   id: "wildlife",
   name: "Wildlife log",
-  summary: "Log animal appearances trail-cam style: time of day, rough size class, and how long they stayed.",
+  description: "Log animal appearances trail-cam style: time of day, rough size class, and how long they stayed.",
   mode: "motion",
   locate: "KnownSizeRanger",
   measurements: ["size_class", "time_of_day", "dwell_s"],
@@ -19,5 +19,5 @@ export default definePreset({
     "Dwell time by visit",
   ],
   // TODO measure(track, ctx):  size band + dwell; optional event still
-  // TODO summarise(events):    appearances by hour, size distribution
+  // TODO deriveFindings(observations): appearances by hour, size distribution
 });

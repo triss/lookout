@@ -1,10 +1,10 @@
-import { definePreset } from "../engine/preset.js";
+import { defineUse } from "../engine/use.js";
 
 // Dwell & occupancy: how long things linger, how many are present.
-export default definePreset({
+export default defineUse({
   id: "dwell",
   name: "Dwell & occupancy",
-  summary: "Measure how long objects linger in a zone and how many are present — queues, loitering, parking turnover.",
+  description: "Measure how long objects linger in a zone and how many are present — queues, loitering, parking turnover.",
   mode: "motion",
   locate: "GroundPlaneHomography",
   measurements: ["dwell_s", "occupancy"],
@@ -19,5 +19,5 @@ export default definePreset({
     "Peak occupancy",
   ],
   // TODO measure(track, ctx):  time a track stays inside the zone
-  // TODO summarise(events):    mean/median dwell, peak occupancy
+  // TODO deriveFindings(observations): mean/median dwell, peak occupancy
 });

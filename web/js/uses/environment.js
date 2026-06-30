@@ -1,10 +1,10 @@
-import { definePreset } from "../engine/preset.js";
+import { defineUse } from "../engine/use.js";
 
 // Environmental change: slow difference against a reference, not frame-to-frame.
-export default definePreset({
+export default defineUse({
   id: "environment",
   name: "Environmental change",
-  summary: "Detect slow change against a reference image: flooding, snow cover, plant growth, a skip that appears and sits for days.",
+  description: "Detect slow change against a reference image: flooding, snow cover, plant growth, a skip that appears and sits for days.",
   mode: "change",
   locate: "none",
   measurements: ["change_pct", "region"],
@@ -19,5 +19,5 @@ export default definePreset({
     "Flagged still frames",
   ],
   // TODO measure(frame, ref):  region-wise difference vs reference / time-lapse
-  // TODO summarise(events):    change timeline, flagged regions
+  // TODO deriveFindings(observations): change timeline, flagged regions
 });
