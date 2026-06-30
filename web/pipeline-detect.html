@@ -26,14 +26,14 @@
 
     <section class="demo" data-downsample-camera aria-labelledby="downsampleHeading">
       <h2 id="downsampleHeading">Demo: Camera Downsampling</h2>
-      <p>Camera frames can be large. This demo first draws the camera into a smaller processing image, then stretches that small image back up so you can see what the computer sees. Lower settings are blockier but cheaper. Higher settings keep more detail but do more work.</p>
+      <p>Camera frames can be large. This demo first draws the camera into a smaller processing image, then stretches that small image back up so you can see what the computer sees. Lower settings make bigger blocks and do less work. Higher settings keep more detail but do more work.</p>
       <div class="demo-actions">
         <button type="button" data-camera-start>Start webcam demo</button>
         <button type="button" data-camera-stop disabled>Stop webcam</button>
       </div>
       <label class="range-control" for="downsampleAmount">
         Processing width
-        <input id="downsampleAmount" data-downsample-range type="range" min="32" max="320" step="16" value="160">
+        <input id="downsampleAmount" data-downsample-range type="range" min="8" max="320" step="8" value="160">
       </label>
       <canvas class="demo-canvas" aria-label="Live webcam downsampled to the selected processing resolution"></canvas>
       <p class="demo-output" data-demo-output>Start the webcam, then move the slider to change downsampling.</p>
