@@ -7,279 +7,357 @@
   <style>
     :root { color-scheme: dark; }
     body {
-      font: 15px/1.5 system-ui, sans-serif;
-      margin: 0; padding: 16px;
-      background: #111; color: #eee;
-      max-width: 760px; margin-inline: auto;
+      font: 15px/1.5 system-ui, -apple-system, sans-serif;
+      margin: 0; padding: 16px; background: #111; color: #eee;
+      max-width: 760px; margin-left: auto; margin-right: auto;
     }
     h1 { font-size: 20px; margin: 0 0 4px; }
     .sub { color: #999; font-size: 13px; margin-bottom: 16px; word-break: break-all; }
-    #verdict {
-      padding: 12px 14px; border-radius: 8px; font-weight: 600;
-      margin-bottom: 18px; border: 1px solid #333;
-    }
+    #verdict { padding: 12px 14px; border-radius: 8px; font-weight: 600;
+      margin-bottom: 14px; border: 1px solid #333; }
     .v-ok   { background: #0d2a14; border-color: #1f7a3a; }
     .v-warn { background: #2a230d; border-color: #7a651f; }
     .v-fail { background: #2a0d0d; border-color: #7a1f1f; }
     h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
-         color: #8ab4ff; margin: 22px 0 6px; }
+      color: #8ab4ff; margin: 22px 0 6px; }
+    #log { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px;
+      padding: 10px; font: 12px/1.45 ui-monospace, Menlo, monospace;
+      color: #bcd; white-space: pre-wrap; word-break: break-word;
+      max-height: 240px; overflow: auto; margin: 0; }
     .row { display: grid; grid-template-columns: 64px 1fr; gap: 10px;
-           padding: 8px 0; border-bottom: 1px solid #222; align-items: start; }
+      padding: 8px 0; border-bottom: 1px solid #222; align-items: start; }
     .badge { font-size: 12px; font-weight: 700; text-align: center;
-             padding: 3px 0; border-radius: 5px; }
+      padding: 3px 0; border-radius: 5px; }
     .pass { background: #14361f; color: #6ee79b; }
     .warn { background: #363014; color: #e7cf6e; }
     .fail { background: #361414; color: #e76e6e; }
     .name { font-weight: 600; }
     .detail { color: #aaa; font-size: 13px; }
     .gates { color: #777; font-size: 12px; margin-top: 2px; }
-    button {
-      min-height: 44px; padding: 0 16px; margin: 4px 6px 4px 0;
-      border: 1px solid #444; border-radius: 7px;
-      background: #222; color: #eee; font: inherit; font-weight: 600;
-    }
+    button { min-height: 44px; padding: 0 16px; margin: 4px 6px 4px 0;
+      border: 1px solid #444; border-radius: 7px; background: #222;
+      color: #eee; font: inherit; font-weight: 600; }
     button:disabled { opacity: .5; }
     #cam { width: 100%; max-height: 50vh; background: #000;
-           border: 1px solid #333; border-radius: 8px; margin-top: 10px;
-           display: none; }
+      border: 1px solid #333; border-radius: 8px; margin-top: 10px; display: none; }
     #camResult { font-size: 14px; margin-top: 8px; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <h1>speed-camera · capability check</h1>
-  <div class="sub" id="ua"></div>
+  <div class="sub" id="ua">user agent…</div>
 
   <div id="verdict">Running checks…</div>
+
+  <h2>Activity log</h2>
+  <pre id="log"></pre>
 
   <div id="report"></div>
 
   <h2>Live camera test</h2>
-  <p class="detail">Static checks above only prove the APIs <em>exist</em>. This
-  actually opens the camera, reports its real resolution, and measures the true
-  frame rate — the number that decides whether on-device speed estimation is viable.</p>
+  <p class="detail">The checks above only prove the APIs <em>exist</em>. This opens
+  the camera, reports its real resolution, and measures the true frame rate.</p>
   <button id="startCam">Test camera</button>
   <button id="stopCam" disabled>Stop</button>
   <video id="cam" playsinline muted></video>
   <div id="camResult"></div>
 
+  <!-- Script 1: logging + global error capture. Deliberately ES5 so it ALWAYS
+       runs, and can report a parse error in the scripts that follow. -->
   <script>
-    "use strict";
+  (function () {
+    var logEl = document.getElementById('log');
+    window.SCLOG = function (msg) {
+      try {
+        var d = new Date();
+        var t = ('0' + d.getHours()).slice(-2) + ':' +
+                ('0' + d.getMinutes()).slice(-2) + ':' +
+                ('0' + d.getSeconds()).slice(-2);
+        logEl.textContent += t + '  ' + msg + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+      } catch (e) {}
+    };
+    window.onerror = function (message, source, lineno, colno) {
+      SCLOG('ERROR: ' + message + '  (line ' + (lineno || '?') + ')');
+      var v = document.getElementById('verdict');
+      if (v) {
+        v.className = 'v-fail';
+        v.textContent = '✗ Script error — this browser may be too old to ' +
+          'parse the page. See the log below.';
+      }
+      return false;
+    };
+    try { document.getElementById('ua').textContent = navigator.userAgent; } catch (e) {}
+    SCLOG('boot ok');
+  })();
+  </script>
 
-    // Each check: returns { status: "pass"|"warn"|"fail", detail: string }.
-    // "critical" failures sink the whole app; others degrade features.
-    const CHECKS = [
-      { group: "Critical", name: "Secure context",
-        gates: "getUserMedia only runs on HTTPS or localhost",
-        critical: true,
-        run: () => window.isSecureContext
-          ? { status: "pass", detail: location.origin }
-          : { status: "fail", detail: "insecure context — serve via https:// or http://localhost" } },
+  <!-- Script 2: the capability checks. ES5 only (no arrow fns, no template
+       literals, no optional chaining, no logical assignment). -->
+  <script>
+  (function () {
+    SCLOG('starting capability checks');
 
-      { group: "Critical", name: "getUserMedia (camera)",
-        gates: "the entire capture path",
-        critical: true,
-        run: () => (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
-          ? { status: "pass", detail: "navigator.mediaDevices.getUserMedia present" }
-          : { status: "fail", detail: "not available — browser too old or non-secure context" } },
-
-      { group: "Critical", name: "Canvas 2D + getImageData",
-        gates: "reading pixels for the CV pipeline",
-        critical: true,
-        run: () => {
+    var CHECKS = [
+      { group: 'Critical', name: 'Secure context', critical: true,
+        gates: 'getUserMedia only runs on HTTPS or localhost',
+        run: function () {
+          return window.isSecureContext
+            ? { status: 'pass', detail: location.origin }
+            : { status: 'fail', detail: 'insecure — use https:// or http://localhost' };
+        } },
+      { group: 'Critical', name: 'getUserMedia (camera)', critical: true,
+        gates: 'the entire capture path',
+        run: function () {
+          return (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'fail', detail: 'not available (old browser or non-secure context)' };
+        } },
+      { group: 'Critical', name: 'Canvas 2D + getImageData', critical: true,
+        gates: 'reading pixels for the CV pipeline',
+        run: function () {
           try {
-            const c = document.createElement("canvas");
-            const g = c.getContext("2d");
-            if (!g) return { status: "fail", detail: "no 2d context" };
+            var c = document.createElement('canvas');
+            var g = c.getContext('2d');
+            if (!g) return { status: 'fail', detail: 'no 2d context' };
             g.getImageData(0, 0, 1, 1);
-            return { status: "pass", detail: "pixel access OK" };
-          } catch (e) { return { status: "fail", detail: String(e) }; }
+            return { status: 'pass', detail: 'pixel access OK' };
+          } catch (e) { return { status: 'fail', detail: String(e) }; }
+        } },
+      { group: 'Critical', name: 'performance.now()', critical: true,
+        gates: 'frame timing — speed = metres / seconds depends on it',
+        run: function () {
+          return (window.performance && typeof performance.now === 'function')
+            ? { status: 'pass', detail: 'high-res clock present' }
+            : { status: 'fail', detail: 'missing' };
+        } },
+      { group: 'Critical', name: 'requestAnimationFrame', critical: true,
+        gates: 'the processing loop',
+        run: function () {
+          return (typeof window.requestAnimationFrame === 'function')
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'fail', detail: 'missing' };
         } },
 
-      { group: "Critical", name: "performance.now()",
-        gates: "frame timing — speed = metres ÷ seconds depends on it",
-        critical: true,
-        run: () => (window.performance && typeof performance.now === "function")
-          ? { status: "pass", detail: "high-res clock present" }
-          : { status: "fail", detail: "missing — timing would be unreliable" } },
-
-      { group: "Critical", name: "requestAnimationFrame",
-        gates: "the processing loop",
-        critical: true,
-        run: () => typeof window.requestAnimationFrame === "function"
-          ? { status: "pass", detail: "present" }
-          : { status: "fail", detail: "missing" } },
-
-      { group: "Performance", name: "WebAssembly",
-        gates: "optional fast CV core (OpenCV.js / Rust/C engine)",
-        run: () => (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function")
-          ? { status: "pass", detail: "WASM available — perf tier open" }
-          : { status: "warn", detail: "no WASM — must run pipeline in plain JS" } },
-
-      { group: "Performance", name: "Web Workers",
-        gates: "running CV off the UI thread (smoother)",
-        run: () => typeof window.Worker === "function"
-          ? { status: "pass", detail: "present" }
-          : { status: "warn", detail: "no workers — CV runs on main thread" } },
-
-      { group: "Performance", name: "createImageBitmap",
-        gates: "efficient zero-copy frame grabs",
-        run: () => typeof window.createImageBitmap === "function"
-          ? { status: "pass", detail: "present" }
-          : { status: "warn", detail: "fall back to canvas drawImage" } },
-
-      { group: "Performance", name: "video.requestVideoFrameCallback",
-        gates: "frame-accurate capture + true fps measurement",
-        run: () => ("requestVideoFrameCallback" in HTMLVideoElement.prototype)
-          ? { status: "pass", detail: "present — accurate per-frame timing" }
-          : { status: "warn", detail: "absent — sample frames via rAF instead" } },
-
-      { group: "Deployment & UX", name: "enumerateDevices",
-        gates: "choosing the rear camera",
-        run: () => (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices)
-          ? { status: "pass", detail: "present" }
-          : { status: "warn", detail: "can't enumerate — rely on facingMode hint" } },
-
-      { group: "Deployment & UX", name: "Wake Lock API",
-        gates: "keeping the screen awake for an always-on sensor",
-        run: () => ("wakeLock" in navigator)
-          ? { status: "pass", detail: "present" }
-          : { status: "warn", detail: "no wake lock — screen may sleep; needs a workaround" } },
-
-      { group: "Deployment & UX", name: "DeviceOrientation / Motion",
-        gates: "the steady-pose probe (web port of stable_capture.py)",
-        run: () => ("DeviceMotionEvent" in window || "DeviceOrientationEvent" in window)
-          ? { status: "pass", detail: "motion sensors exposed (may need a permission prompt on iOS)" }
-          : { status: "warn", detail: "no motion sensors — calibrate stability visually" } },
-
-      { group: "Deployment & UX", name: "Clipboard write",
-        gates: "exporting calibration JSON",
-        run: () => (navigator.clipboard && navigator.clipboard.writeText)
-          ? { status: "pass", detail: "present" }
-          : { status: "warn", detail: "fall back to a textarea copy" } },
-
-      { group: "Deployment & UX", name: "localStorage",
-        gates: "persisting calibration between sessions",
-        run: () => {
-          try { localStorage.setItem("__sc", "1"); localStorage.removeItem("__sc");
-            return { status: "pass", detail: "present" }; }
-          catch (e) { return { status: "warn", detail: "unavailable (private mode?)" }; }
+      { group: 'Performance', name: 'WebAssembly',
+        gates: 'optional fast CV core (OpenCV.js / Rust/C engine)',
+        run: function () {
+          return (typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'function')
+            ? { status: 'pass', detail: 'WASM available' }
+            : { status: 'warn', detail: 'no WASM — pipeline must run in plain JS' };
         } },
+      { group: 'Performance', name: 'Web Workers',
+        gates: 'running CV off the UI thread',
+        run: function () {
+          return (typeof window.Worker === 'function')
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'CV runs on main thread' };
+        } },
+      { group: 'Performance', name: 'createImageBitmap',
+        gates: 'efficient frame grabs',
+        run: function () {
+          return (typeof window.createImageBitmap === 'function')
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'fall back to drawImage' };
+        } },
+      { group: 'Performance', name: 'video.requestVideoFrameCallback',
+        gates: 'frame-accurate capture + true fps',
+        run: function () {
+          return (window.HTMLVideoElement &&
+                  'requestVideoFrameCallback' in HTMLVideoElement.prototype)
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'absent — sample via rAF instead' };
+        } },
+
+      { group: 'Deployment & UX', name: 'enumerateDevices',
+        gates: 'choosing the rear camera',
+        run: function () {
+          return (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices)
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'rely on facingMode hint' };
+        } },
+      { group: 'Deployment & UX', name: 'Wake Lock API',
+        gates: 'keeping the screen awake for an always-on sensor',
+        run: function () {
+          return ('wakeLock' in navigator)
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'no wake lock — screen may sleep' };
+        } },
+      { group: 'Deployment & UX', name: 'DeviceMotion / Orientation',
+        gates: 'the steady-pose probe (web port of stable_capture.py)',
+        run: function () {
+          return ('DeviceMotionEvent' in window || 'DeviceOrientationEvent' in window)
+            ? { status: 'pass', detail: 'present (iOS needs a permission tap)' }
+            : { status: 'warn', detail: 'no motion sensors — calibrate visually' };
+        } },
+      { group: 'Deployment & UX', name: 'Clipboard write',
+        gates: 'exporting calibration / data',
+        run: function () {
+          return (navigator.clipboard && navigator.clipboard.writeText)
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'fall back to textarea copy' };
+        } },
+      { group: 'Deployment & UX', name: 'MediaRecorder',
+        gates: 'logging event video clips',
+        run: function () {
+          return (typeof window.MediaRecorder === 'function')
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'no clip recording (stills only)' };
+        } },
+      { group: 'Deployment & UX', name: 'IndexedDB',
+        gates: 'accumulating the event log on-device',
+        run: function () {
+          return (window.indexedDB)
+            ? { status: 'pass', detail: 'present' }
+            : { status: 'warn', detail: 'fall back to localStorage' };
+        } },
+      { group: 'Deployment & UX', name: 'Web Share with files',
+        gates: 'one-tap share to WhatsApp / Email',
+        run: function () {
+          if (!navigator.share) return { status: 'warn', detail: 'no Web Share — use download' };
+          var canFiles = false;
+          try { canFiles = !!(navigator.canShare && navigator.canShare({ files: [] })); } catch (e) {}
+          return canFiles
+            ? { status: 'pass', detail: 'file sharing supported' }
+            : { status: 'warn', detail: 'share present, files maybe not — test on device' };
+        } }
     ];
 
-    function render() {
-      document.getElementById("ua").textContent = navigator.userAgent;
-      const report = document.getElementById("report");
-      const groups = {};
-      let criticalFail = false, anyWarn = false;
+    var report = document.getElementById('report');
+    var groups = {};
+    var order = [];
+    var criticalFail = false, anyWarn = false;
+    var i;
 
-      for (const chk of CHECKS) {
-        let res;
-        try { res = chk.run(); }
-        catch (e) { res = { status: "fail", detail: "threw: " + e }; }
-        if (res.status === "fail" && chk.critical) criticalFail = true;
-        if (res.status !== "pass") anyWarn = true;
-        (groups[chk.group] ||= []).push({ chk, res });
-      }
+    for (i = 0; i < CHECKS.length; i++) {
+      var chk = CHECKS[i];
+      var res;
+      try { res = chk.run(); }
+      catch (e) { res = { status: 'fail', detail: 'threw: ' + e }; }
+      SCLOG(res.status.toUpperCase() + '  ' + chk.name +
+        (res.detail ? '  — ' + res.detail : ''));
+      if (res.status === 'fail' && chk.critical) criticalFail = true;
+      if (res.status !== 'pass') anyWarn = true;
+      if (!groups[chk.group]) { groups[chk.group] = []; order.push(chk.group); }
+      groups[chk.group].push({ chk: chk, res: res });
+    }
 
-      for (const [group, items] of Object.entries(groups)) {
-        const h = document.createElement("h2");
-        h.textContent = group;
-        report.append(h);
-        for (const { chk, res } of items) {
-          const row = document.createElement("div");
-          row.className = "row";
-          row.innerHTML =
-            `<div class="badge ${res.status}">${res.status.toUpperCase()}</div>` +
-            `<div><div class="name">${chk.name}</div>` +
-            `<div class="detail">${res.detail}</div>` +
-            `<div class="gates">gates: ${chk.gates}</div></div>`;
-          report.append(row);
-        }
-      }
-
-      const v = document.getElementById("verdict");
-      if (criticalFail) {
-        v.className = "v-fail";
-        v.textContent = "✗ A critical API is missing — the web app cannot run on this browser as-is.";
-      } else if (anyWarn) {
-        v.className = "v-warn";
-        v.textContent = "✓ Core path works. Some optional features are missing — app runs, degraded.";
-      } else {
-        v.className = "v-ok";
-        v.textContent = "✓ Everything the web app needs is here.";
+    for (i = 0; i < order.length; i++) {
+      var g = order[i];
+      var h = document.createElement('h2');
+      h.textContent = g;
+      report.appendChild(h);
+      var items = groups[g];
+      for (var j = 0; j < items.length; j++) {
+        var it = items[j];
+        var row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML =
+          '<div class="badge ' + it.res.status + '">' + it.res.status.toUpperCase() + '</div>' +
+          '<div><div class="name">' + it.chk.name + '</div>' +
+          '<div class="detail">' + it.res.detail + '</div>' +
+          '<div class="gates">gates: ' + it.chk.gates + '</div></div>';
+        report.appendChild(row);
       }
     }
 
-    // --- live camera test ---
-    let stream = null, rafId = 0, rvfcActive = false;
-    const video = document.getElementById("cam");
-    const out = document.getElementById("camResult");
-
-    async function startCam() {
-      out.textContent = "requesting camera…";
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } }, audio: false,
-        });
-      } catch (e) {
-        out.textContent = "camera failed: " + e.name + " — " + e.message;
-        return;
-      }
-      video.srcObject = stream;
-      video.style.display = "block";
-      await video.play().catch(() => {});
-      document.getElementById("startCam").disabled = true;
-      document.getElementById("stopCam").disabled = false;
-
-      const track = stream.getVideoTracks()[0];
-      const s = track.getSettings ? track.getSettings() : {};
-      measureFps((fps) => {
-        out.textContent =
-          `resolution: ${video.videoWidth}×${video.videoHeight}\n` +
-          `camera:     ${s.facingMode || "?"} ${s.deviceId ? "(" + s.deviceId.slice(0, 8) + "…)" : ""}\n` +
-          `reported:   ${s.frameRate ? s.frameRate.toFixed(1) + " fps (track)" : "n/a"}\n` +
-          `measured:   ${fps.toFixed(1)} fps over ~2s\n\n` +
-          (fps >= 12
-            ? "→ adequate frame rate for speed estimation."
-            : "→ low frame rate; speed accuracy for fast objects will suffer.");
-      });
+    var v = document.getElementById('verdict');
+    if (criticalFail) {
+      v.className = 'v-fail';
+      v.textContent = '✗ A critical API is missing — the web app cannot run here as-is.';
+    } else if (anyWarn) {
+      v.className = 'v-warn';
+      v.textContent = '✓ Core path works. Some optional features missing — runs, degraded.';
+    } else {
+      v.className = 'v-ok';
+      v.textContent = '✓ Everything the web app needs is here.';
     }
+    SCLOG('checks complete: ' + (criticalFail ? 'CRITICAL FAIL' : (anyWarn ? 'OK with warnings' : 'all pass')));
+  })();
+  </script>
+
+  <!-- Script 3: live camera test. Separate tag + Promise-based so a parse issue
+       here can't stop the report above. -->
+  <script>
+  (function () {
+    var stream = null, rafId = 0;
+    var video = document.getElementById('cam');
+    var out = document.getElementById('camResult');
+    var startBtn = document.getElementById('startCam');
+    var stopBtn = document.getElementById('stopCam');
 
     function measureFps(done) {
-      let frames = 0;
-      const start = performance.now();
-      const useRvfc = "requestVideoFrameCallback" in HTMLVideoElement.prototype;
+      var frames = 0;
+      var start = performance.now();
+      var useRvfc = window.HTMLVideoElement &&
+        'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+      function tick() {
+        frames++;
+        var elapsed = performance.now() - start;
+        if (elapsed >= 2000) { done(frames / (elapsed / 1000)); }
+        else if (useRvfc) { video.requestVideoFrameCallback(tick); }
+        else { rafId = requestAnimationFrame(tick); }
+      }
+      if (useRvfc) { video.requestVideoFrameCallback(tick); }
+      else { rafId = requestAnimationFrame(tick); }
+    }
 
-      function tickRvfc() {
-        frames++;
-        if (performance.now() - start >= 2000) {
-          rvfcActive = false;
-          done(frames / ((performance.now() - start) / 1000));
-        } else { video.requestVideoFrameCallback(tickRvfc); }
+    function startCam() {
+      out.textContent = '';
+      SCLOG('camera: requesting permission…');
+      if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+        SCLOG('camera: getUserMedia unavailable');
+        out.textContent = 'getUserMedia not available on this browser.';
+        return;
       }
-      function tickRaf() {
-        frames++;
-        if (performance.now() - start >= 2000) {
-          done(frames / ((performance.now() - start) / 1000));
-        } else { rafId = requestAnimationFrame(tickRaf); }
-      }
-      if (useRvfc) { rvfcActive = true; video.requestVideoFrameCallback(tickRvfc); }
-      else { rafId = requestAnimationFrame(tickRaf); }
+      navigator.mediaDevices.getUserMedia(
+        { video: { facingMode: { ideal: 'environment' } }, audio: false }
+      ).then(function (s) {
+        stream = s;
+        video.srcObject = stream;
+        video.style.display = 'block';
+        SCLOG('camera: stream acquired');
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        var p = video.play();
+        if (p && p.catch) { p.catch(function () {}); }
+        var track = stream.getVideoTracks()[0];
+        var st = track.getSettings ? track.getSettings() : {};
+        SCLOG('camera: ' + video.videoWidth + 'x' + video.videoHeight +
+          ' — measuring fps…');
+        measureFps(function (fps) {
+          SCLOG('camera: measured ' + fps.toFixed(1) + ' fps');
+          out.textContent =
+            'resolution: ' + video.videoWidth + 'x' + video.videoHeight + '\n' +
+            'facing:     ' + (st.facingMode || '?') + '\n' +
+            'reported:   ' + (st.frameRate ? st.frameRate.toFixed(1) + ' fps' : 'n/a') + '\n' +
+            'measured:   ' + fps.toFixed(1) + ' fps over ~2s\n\n' +
+            (fps >= 12 ? '→ adequate frame rate for speed estimation.'
+                       : '→ low frame rate; fast objects will suffer.');
+        });
+      }).catch(function (e) {
+        SCLOG('camera FAILED: ' + e.name + ' — ' + e.message);
+        out.textContent = 'camera failed: ' + e.name + ' — ' + e.message;
+      });
     }
 
     function stopCam() {
       if (rafId) cancelAnimationFrame(rafId);
-      if (stream) stream.getTracks().forEach((t) => t.stop());
+      if (stream) {
+        var ts = stream.getTracks();
+        for (var i = 0; i < ts.length; i++) ts[i].stop();
+      }
       stream = null;
-      video.style.display = "none";
-      document.getElementById("startCam").disabled = false;
-      document.getElementById("stopCam").disabled = true;
+      video.style.display = 'none';
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      SCLOG('camera: stopped');
     }
 
-    document.getElementById("startCam").addEventListener("click", startCam);
-    document.getElementById("stopCam").addEventListener("click", stopCam);
-
-    render();
+    startBtn.addEventListener('click', startCam);
+    stopBtn.addEventListener('click', stopCam);
+    SCLOG('camera test ready');
+  })();
   </script>
 </body>
 </html>
