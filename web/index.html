@@ -43,6 +43,19 @@
       </div>
       <p id="status" role="status" aria-live="polite">Idle. New here? Run the <a href="check.html">capability check</a> first.</p>
     </section>
+
+    <section class="engine-readout" aria-labelledby="readoutTitle">
+      <h2 id="readoutTitle">Engine readout</h2>
+      <p class="note">The active use's declared contract, and the live pipeline driving it. Measurement stages are stubs, so <code>measure()</code> and <code>deriveFindings()</code> report "stub" until implemented.</p>
+      <dl class="facts">
+        <div><dt>Sensing mode</dt><dd id="roMode">—</dd></div>
+        <div><dt>Locate backend</dt><dd id="roLocate">—</dd></div>
+        <div><dt>Measurements</dt><dd id="roMeasurements">—</dd></div>
+        <div><dt>Detection events</dt><dd id="roEvents">0</dd></div>
+        <div><dt>measure()</dt><dd id="roMeasure">idle</dd></div>
+        <div><dt>deriveFindings()</dt><dd id="roFindings">idle</dd></div>
+      </dl>
+    </section>
   </main>
 
   <script type="module" src="js/app.js"></script>

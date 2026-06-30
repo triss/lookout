@@ -554,6 +554,13 @@ li + li { margin-top: .3rem; }
   margin: 1rem 0;
 }
 
+.engine-readout { margin-top: 1.5rem; }
+
+#roMeasure, #roFindings {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .82rem;
+}
+
 .facts div {
   padding: .65rem;
   border: 1px solid var(--line);
