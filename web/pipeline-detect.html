@@ -24,6 +24,13 @@
     <p>The web version turns each frame into greyscale first, because brightness changes are cheaper to compare than full colour. It subtracts the previous frame from the current frame. Small changes are ignored as noise; larger changes become a motion mask. The first demo shows that mask summarized as a smooth box. The second demo shows the mask itself.</p>
     <p class="note">The webcam demo asks for camera permission and works on HTTPS or localhost.</p>
 
+    <section class="demo" data-downsample-demo aria-labelledby="downsampleHeading">
+      <h2 id="downsampleHeading">How Downsampling Works</h2>
+      <p>Camera frames can be large. The demo reads a smaller processing image first: <code>160 x 90</code> pixels. One small processing pixel stands in for a block of camera pixels. That loses fine detail, but it is much cheaper and still good enough to notice bigger motion.</p>
+      <canvas class="demo-canvas" aria-label="Diagram showing a large camera grid becoming a smaller processing grid"></canvas>
+      <p class="demo-output">The yellow block of camera pixels becomes one processing pixel. The code sets this with <code>PROC_W</code> and <code>PROC_H</code>.</p>
+    </section>
+
     <section class="demo" data-webcam="difference" aria-labelledby="demoHeading">
       <h2 id="demoHeading">Demo: Smoothed Detection Box</h2>
       <div class="demo-actions">
@@ -49,7 +56,7 @@
 
     <section aria-labelledby="codeHeading">
       <h2 id="codeHeading">Where the code is</h2>
-      <p>The webcam demos implement this stage with <code>toGray()</code>, <code>changedRegion()</code>, <code>drawRegion()</code>, and <code>drawMask()</code> in <code>web/js/pipeline-demos.js</code>. The main app scaffold uses <code>toGray()</code> and <code>motionEnergy()</code> in <code>web/js/app.js</code>.</p>
+      <p>The webcam demos implement this stage with <code>PROC_W</code>, <code>PROC_H</code>, <code>drawCameraFrame()</code>, <code>toGray()</code>, <code>changedRegion()</code>, <code>drawRegion()</code>, and <code>drawMask()</code> in <code>web/js/pipeline-demos.js</code>. The main app scaffold uses <code>PROC_W</code>, <code>toGray()</code>, and <code>motionEnergy()</code> in <code>web/js/app.js</code>.</p>
       <ul class="code-links">
         <li><a href="https://github.com/triss/lookout/blob/main/web/js/pipeline-demos.js">web/js/pipeline-demos.js</a></li>
         <li><a href="https://github.com/triss/lookout/blob/main/web/js/app.js">web/js/app.js</a></li>

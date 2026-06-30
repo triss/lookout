@@ -3,6 +3,84 @@ const HEIGHT = 360;
 const PROC_W = 160;
 const PROC_H = 90;
 
+function installDownsampleDemo(root) {
+  const canvas = root.querySelector("canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+
+  ctx.fillStyle = "#050607";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillStyle = "#f2f4f7";
+  ctx.font = "700 17px system-ui, sans-serif";
+  ctx.fillText("Camera frame", 38, 36);
+  ctx.fillText("Processing frame", 380, 36);
+
+  const big = { x: 42, y: 62, cell: 24, cols: 10, rows: 7 };
+  const small = { x: 405, y: 78, cell: 30, cols: 5, rows: 4 };
+
+  ctx.strokeStyle = "#3a424d";
+  ctx.lineWidth = 1;
+  for (let y = 0; y <= big.rows; y++) {
+    ctx.beginPath();
+    ctx.moveTo(big.x, big.y + y * big.cell);
+    ctx.lineTo(big.x + big.cols * big.cell, big.y + y * big.cell);
+    ctx.stroke();
+  }
+  for (let x = 0; x <= big.cols; x++) {
+    ctx.beginPath();
+    ctx.moveTo(big.x + x * big.cell, big.y);
+    ctx.lineTo(big.x + x * big.cell, big.y + big.rows * big.cell);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "rgba(255, 209, 102, .36)";
+  ctx.fillRect(big.x + big.cell * 2, big.y + big.cell * 2, big.cell * 2, big.cell * 2);
+  ctx.strokeStyle = "#ffd166";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(big.x + big.cell * 2, big.y + big.cell * 2, big.cell * 2, big.cell * 2);
+
+  ctx.strokeStyle = "#8ab4ff";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(310, 146);
+  ctx.lineTo(372, 146);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(360, 134);
+  ctx.lineTo(372, 146);
+  ctx.lineTo(360, 158);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#3a424d";
+  ctx.lineWidth = 1;
+  for (let y = 0; y <= small.rows; y++) {
+    ctx.beginPath();
+    ctx.moveTo(small.x, small.y + y * small.cell);
+    ctx.lineTo(small.x + small.cols * small.cell, small.y + y * small.cell);
+    ctx.stroke();
+  }
+  for (let x = 0; x <= small.cols; x++) {
+    ctx.beginPath();
+    ctx.moveTo(small.x + x * small.cell, small.y);
+    ctx.lineTo(small.x + x * small.cell, small.y + small.rows * small.cell);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#ffd166";
+  ctx.fillRect(small.x + small.cell, small.y + small.cell, small.cell, small.cell);
+  ctx.fillStyle = "#101214";
+  ctx.font = "700 13px system-ui, sans-serif";
+  ctx.fillText("1", small.x + small.cell + 11, small.y + small.cell + 20);
+
+  ctx.fillStyle = "#bdc6d1";
+  ctx.font = "14px system-ui, sans-serif";
+  ctx.fillText("many camera pixels", 76, 260);
+  ctx.fillText("one cheaper pixel", 410, 260);
+  ctx.fillText("less detail, much less work", 214, 314);
+}
+
 function toGray(imageData) {
   const gray = new Uint8ClampedArray(imageData.width * imageData.height);
   for (let i = 0, j = 0; i < imageData.data.length; i += 4, j++) {
@@ -274,3 +352,4 @@ function installWebcamDemo(root) {
 }
 
 document.querySelectorAll("[data-webcam]").forEach(installWebcamDemo);
+document.querySelectorAll("[data-downsample-demo]").forEach(installDownsampleDemo);
