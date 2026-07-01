@@ -1,5 +1,5 @@
 /* Full-screen counting UI, layered over the camera. Reuses the theme tokens
-   from style.css (so it follows the beige/blue/dark picker). */
+   from style.css. */
 
 html, body.page-counting {
   height: 100%;
@@ -38,20 +38,6 @@ html, body.page-counting {
   width: 100%;
   height: 100%;
   touch-action: none;
-}
-
-.cam-hint {
-  position: absolute;
-  inset: auto 1rem 40% 1rem;
-  margin: 0 auto;
-  max-width: 22rem;
-  left: 0; right: 0;
-  text-align: center;
-  color: #f2f4f7;
-  background: rgba(16, 18, 20, .72);
-  padding: .8rem 1rem;
-  border-radius: 10px;
-  font-size: .95rem;
 }
 
 /* HUD bars */
@@ -117,14 +103,7 @@ html, body.page-counting {
   text-align: center;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .65);
 }
-
-.page-counting #themePicker {
-  position: static;
-  width: max-content;
-  max-width: 100%;
-  box-shadow: none;
-  opacity: 1;
-}
+.page-counting #themePicker { display: none !important; }
 
 /* Sliding sheets */
 .sheet {

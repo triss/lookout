@@ -6,14 +6,13 @@
   <title>lookout · counting</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/counting.css">
-  <script src="js/theme.js"></script>
+  <script src="js/theme.js?v=settings-theme-only"></script>
 </head>
-<body class="page-counting" data-theme-picker-target="countingThemePicker">
+<body class="page-counting">
   <!-- Full-screen camera -->
   <div id="stage">
     <video id="cam" playsinline muted autoplay aria-label="Live camera preview"></video>
     <canvas id="draw" aria-label="Counting overlay"></canvas>
-    <p id="camHint" class="cam-hint">Camera off. Press <strong>Start camera</strong> to begin. Everything runs on this device.</p>
   </div>
 
   <!-- Top HUD: live totals + status -->
@@ -86,7 +85,14 @@
 
       <fieldset>
         <legend>Appearance</legend>
-        <div id="countingThemePicker"></div>
+        <label>Theme
+          <select id="themeSelect">
+            <option value="system">System</option>
+            <option value="dark">Dark</option>
+            <option value="beige">Beige</option>
+            <option value="blue">Blue</option>
+          </select>
+        </label>
       </fieldset>
 
       <fieldset>

@@ -23,10 +23,17 @@ const settings = {
 // ── DOM ──────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 const cam = $("cam"), draw = $("draw"), dctx = draw.getContext("2d");
-const camHint = $("camHint"), statusLine = $("status");
+const statusLine = $("status");
 const work = document.createElement("canvas");
 const wctx = work.getContext("2d", { willReadFrequently: true });
 let procH = 132;
+
+removeFloatingThemePicker();
+document.addEventListener("DOMContentLoaded", removeFloatingThemePicker);
+function removeFloatingThemePicker() {
+  const floatingThemePicker = document.getElementById("themePicker");
+  if (floatingThemePicker) floatingThemePicker.remove();
+}
 
 // ── State ────────────────────────────────────────────────────────────────
 let stream = null, cameraOn = false, observing = false;
@@ -59,7 +66,8 @@ function frameToScreen(p) {
 }
 
 // ── Camera ─────────────────────────────────────────────────────────────────
-async function startCamera({ drawLineAfterStart = false } = {}) {
+async function startCamera({ drawLineAfterStart = false, askFullscreen = false } = {}) {
+  if (askFullscreen) requestFullscreen();
   stopStream();
   statusLine.textContent = "requesting camera…";
   try {
@@ -79,7 +87,6 @@ async function startCamera({ drawLineAfterStart = false } = {}) {
   cam.classList.toggle("mirror", settings.mirror);
   await cam.play().catch(() => {});
   cameraOn = true;
-  camHint.hidden = true;
   for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = false;
   updatePrimaryButton();
   resizeOverlay();
@@ -103,9 +110,14 @@ function stopCamera() {
   stopStream();
   cancelAnimationFrame(rafId);
   dctx.clearRect(0, 0, draw.width, draw.height);
-  camHint.hidden = false;
   updatePrimaryButton();
   for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = true;
+}
+
+function requestFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || !el.requestFullscreen) return;
+  el.requestFullscreen().catch(() => {});
 }
 
 // ── Overlay sizing ──────────────────────────────────────────────────────────
@@ -287,7 +299,7 @@ draw.addEventListener("pointerdown", (e) => {
 // ── UI wiring ────────────────────────────────────────────────────────────────
 $("btnCamera").addEventListener("click", () => {
   if (!cameraOn) {
-    startCamera({ drawLineAfterStart: true });
+    startCamera({ drawLineAfterStart: true, askFullscreen: true });
     return;
   }
   if (!line) return;

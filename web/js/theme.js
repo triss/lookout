@@ -1,7 +1,8 @@
-/* Theme picker — low-glare default + user choice.
+/* Theme application — low-glare default + user choice.
    ES5, no modules, no dependencies, so it runs on the same old browsers the
    capability checker targets. Loaded from <head>: it applies the saved theme
-   synchronously (before paint, no flash), then injects the picker on load.
+   synchronously (before paint, no flash), then binds an explicit settings
+   select if the page provides one.
 
    Themes: "system" (follow prefers-color-scheme; light default is beige),
    "dark", "beige", "blue". Persisted in localStorage. */
@@ -9,7 +10,6 @@
   "use strict";
   var KEY = "lookout-theme";
   var THEMES = ["system", "dark", "beige", "blue"];
-  var LABELS = { system: "System", dark: "Dark", beige: "Beige", blue: "Blue" };
 
   function read() {
     try {
@@ -27,41 +27,27 @@
   // Apply immediately — documentElement exists while the <head> script runs.
   apply(read());
 
-  function buildPicker() {
-    if (document.getElementById("themePicker")) return;
-    var current = read();
-
-    var wrap = document.createElement("div");
-    wrap.id = "themePicker";
-
-    var label = document.createElement("label");
-    label.setAttribute("for", "themeSelect");
-    label.textContent = "Theme";
-
-    var select = document.createElement("select");
-    select.id = "themeSelect";
-    for (var i = 0; i < THEMES.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = THEMES[i];
-      opt.textContent = LABELS[THEMES[i]];
-      if (THEMES[i] === current) opt.selected = true;
-      select.appendChild(opt);
-    }
-    select.onchange = function () {
+  function bindSelect(select) {
+    function update() {
       try { localStorage.setItem(KEY, select.value); } catch (e) {}
       apply(select.value);
-    };
+    }
+    select.value = read();
+    select.addEventListener("input", update);
+    select.addEventListener("change", update);
+    apply(select.value);
+  }
 
-    wrap.appendChild(label);
-    wrap.appendChild(select);
-    var targetId = document.body.getAttribute("data-theme-picker-target");
-    var target = targetId ? document.getElementById(targetId) : null;
-    (target || document.body).appendChild(wrap);
+  function bindSettingsThemeSelect() {
+    var existing = document.getElementById("themeSelect");
+    if (existing) {
+      bindSelect(existing);
+    }
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", buildPicker);
+    document.addEventListener("DOMContentLoaded", bindSettingsThemeSelect);
   } else {
-    buildPicker();
+    bindSettingsThemeSelect();
   }
 })();
