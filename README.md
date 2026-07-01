@@ -68,9 +68,10 @@ Under `web/`:
   real resolution + frame rate. **Run this first on any candidate phone.**
 - `web/index.html` — project overview and document index.
 - `web/speed.html`, `web/count.html`, `web/dwell.html`, `web/wildlife.html`,
-  `web/environment.html` — one page per engine use. Each page contains its own
-  camera scaffold, live engine readout, local observation count, CSV/JSON
-  sharing controls, and optional observation-still sharing.
+  `web/environment.html`, `web/drones.html`, `web/security.html` — one page per
+  engine use. Each page contains its own camera scaffold, live engine readout,
+  the auditable pipeline-module + configuration breakdown, local observation
+  count, CSV/JSON sharing controls, and optional observation-still sharing.
   `web/speed.html` also contains the speed-calibration flow: place the phone,
   let motion/orientation sensors confirm it is still, capture a photo, then mark
   point pairs and enter the real distance between each pair.

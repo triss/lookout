@@ -61,3 +61,8 @@ defineLocate("KnownSizeRanger", stubLocator(
 // StereoTriangulator — two views → depth. Stub.
 defineLocate("StereoTriangulator", stubLocator(
   "StereoTriangulator", "needs a second synchronised view — not implemented yet (stub)"));
+
+// SkyBearing — azimuth + elevation of an airborne mover against the sky; no
+// ground plane, no range. For drone / overflight tracking. Stub.
+defineLocate("SkyBearing", stubLocator(
+  "SkyBearing", "needs sky-angle setup (camera azimuth + elevation reference) — not implemented yet (stub)"));
