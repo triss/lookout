@@ -101,7 +101,22 @@ html, body.page-counting {
 #hudBottom button.go { background: var(--ok-bg); border-color: var(--ok-bd); color: var(--pass-fg); }
 #hudBottom button.go.observing { background: var(--fail-bg); border-color: var(--fail-bd); color: var(--fail-fg); }
 #hudBottom button.small { flex: 0 0 auto; min-width: 5.5rem; }
-.status-line { margin: 0; font-size: .82rem; color: var(--muted); }
+.placing-line #hudBottom .row { display: none; }
+.status-line {
+  align-self: center;
+  max-width: min(100%, 34rem);
+  margin: 0;
+  padding: .45rem .7rem;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 999px;
+  background: rgba(16, 18, 20, .66);
+  color: #f8fafc;
+  font-size: .86rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .65);
+}
 
 .page-counting #themePicker {
   position: static;

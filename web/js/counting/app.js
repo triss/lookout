@@ -98,6 +98,8 @@ function stopStream() {
 }
 function stopCamera() {
   observing = false; cameraOn = false;
+  drawMode = false; pendingA = null;
+  document.body.classList.remove("placing-line");
   stopStream();
   cancelAnimationFrame(rafId);
   dctx.clearRect(0, 0, draw.width, draw.height);
@@ -277,6 +279,7 @@ draw.addEventListener("pointerdown", (e) => {
     line = { a: pendingA, b: p };
     pendingA = null; drawMode = false;
     draw.classList.remove("drawing");
+    document.body.classList.remove("placing-line");
     startObserving();
   }
 });
@@ -304,6 +307,7 @@ function beginLineDrawing() {
   line = null;
   if (observing) { observing = false; updatePrimaryButton(); }
   drawMode = true; pendingA = null; draw.classList.add("drawing");
+  document.body.classList.add("placing-line");
   updatePrimaryButton();
   statusLine.textContent = "Tap point A of the counting line.";
 }
