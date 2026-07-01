@@ -9,19 +9,32 @@ html, body.page-counting {
 }
 
 #stage {
-  position: fixed;
-  inset: 0;
+  position: relative; /* NOT fixed: a fixed ancestor + absolutely-positioned
+                          <video> makes Chromium hide the video behind the
+                          overlay canvas (black screen). */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   background: #000;
 }
-#cam, #draw {
+/* The video stays in normal flow. An absolutely-positioned <video> is rendered
+   in a lower compositing layer that the overlay canvas occludes → black. */
+#cam {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+#cam.mirror { transform: scaleX(-1); }
+/* Overlay canvas sits on top of the in-flow video and takes the pointer. */
+#draw {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  touch-action: none;
 }
-#cam { object-fit: cover; background: #000; }
-#cam.mirror { transform: scaleX(-1); }
-#draw { touch-action: none; }
 
 .cam-hint {
   position: absolute;
