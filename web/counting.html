@@ -38,7 +38,7 @@
     </div>
     <div class="row">
       <button id="btnDraw" type="button" disabled>Redraw line</button>
-      <button id="btnHelp" type="button">How it works</button>
+      <button id="btnHelp" type="button">How this works</button>
       <button id="btnSettings" type="button">Settings</button>
       <button id="btnExport" type="button">Export</button>
     </div>
@@ -46,19 +46,23 @@
   </footer>
 
   <!-- HELP / description sheet -->
-  <section id="panelHelp" class="sheet" hidden aria-label="How counting works">
-    <div class="sheet-head"><h2>How counting works</h2><button class="sheet-close" data-close>✕</button></div>
+  <section id="panelHelp" class="sheet" hidden aria-label="How this works">
+    <div class="sheet-head"><h2>How this works</h2><button class="sheet-close" data-close>✕</button></div>
     <div class="sheet-body">
       <p><strong>Count crossings, not people.</strong> lookout watches a fixed view, notices movement, and counts each time a moving blob crosses a line you draw. It stores timestamped <em>observations</em> — measurements only — on this device. No faces, no plates, no identity, no cloud, no continuous recording.</p>
+      <p>This can help estimate movement through a place: people entering or leaving a room, use of a doorway, footfall along a path, bikes passing a point, vehicles using a lane, or activity through a gate. It counts crossings of the line, so treat the result as a practical estimate rather than a perfect head count.</p>
+      <p>Set the phone somewhere stable with a clear view of the crossing point: a window ledge, shelf, tripod, or another support that will not wobble. Keep the lens clean, avoid reflections where possible, and leave the phone plugged in for longer observations.</p>
       <ol>
         <li>Press <strong>Start camera</strong> and aim at a fixed spot. Line drawing starts automatically.</li>
         <li>Use <strong>Switch camera</strong> for front/back if needed.</li>
-        <li>Tap two points to place your counting line. Use <strong>Redraw line</strong> if you need to replace it.</li>
+        <li>Tap two points to place your counting line across the path, doorway, road, or other crossing point.</li>
+        <li>After the line is positioned, do not move, rotate, or bump the phone. If the view changes, use <strong>Redraw line</strong> so the line matches the new camera position.</li>
         <li>Open <strong>Settings</strong> to choose direction behaviour, sensitivity, and privacy mode.</li>
         <li>Once the line is placed, observing starts automatically. The main button becomes <strong>Stop observing</strong> while counting is active.</li>
         <li>Open <strong>Export</strong> to save a CSV/JSON count log, or clear local data.</li>
       </ol>
-      <p class="muted">Tune <em>sensitivity</em>, <em>minimum size</em>, <em>minimum duration</em>, and <em>cooldown</em> in Settings to reduce false counts from leaves, shadows, rain, or camera shake. The camera runs at a low frame rate by default to suit older phones; the top bar shows the <em>measured</em> fps.</p>
+      <p><strong>Fix common problems in Settings.</strong> If leaves, shadows, rain, or small background movement cause false counts, raise <em>Sensitivity threshold</em> or <em>Minimum size</em>. If the same person or vehicle is counted more than once, raise <em>Count cooldown</em>. If quick movement is missed, lower <em>Minimum track duration</em> or increase <em>Target FPS</em>. If the phone is struggling, lower <em>Target FPS</em> or <em>Resolution</em>.</p>
+      <p class="muted">The top bar shows measured fps. If the camera view or phone position changes, stop observing and redraw the line before trusting new counts.</p>
     </div>
   </section>
 
