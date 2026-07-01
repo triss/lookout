@@ -4,6 +4,7 @@
 import { toGray } from "../engine/gray.js";
 import { extractBlobs } from "../counting/blobs.js";
 import { createMultiTracker } from "../counting/tracker.js";
+import { pickMotionEvent } from "../tools/motion-trigger.js";
 import { openObservationStore } from "../engine/store.js";
 
 const USE = "security";
@@ -184,12 +185,11 @@ function loop() {
 }
 
 function detectMotionEvent(tracks, t) {
-  if (t - lastEventT < settings.cooldownMs) return;
-  let trigger = null;
-  for (const tr of tracks) {
-    if (tr.lastT - tr.firstT < settings.minDurationMs) continue;
-    if (!trigger || tr.framesSeen > trigger.framesSeen) trigger = tr;
-  }
+  const trigger = pickMotionEvent(tracks, {
+    minDurationMs: settings.minDurationMs,
+    cooldownMs: settings.cooldownMs,
+    lastEventT, now: t,
+  });
   if (!trigger) return;
   lastEventT = t;
   recordEvent(trigger, t);

@@ -3,6 +3,8 @@
 import { toGray } from "../engine/gray.js";
 import { extractBlobs } from "../counting/blobs.js";
 import { createMultiTracker } from "../counting/tracker.js";
+import { pickMotionEvent } from "../tools/motion-trigger.js";
+import { clipEventAction, shouldFinalizeClip } from "../tools/clip-series.js";
 import { openObservationStore } from "../engine/store.js";
 
 const USE = "security_clips";
@@ -257,12 +259,11 @@ function loop() {
 }
 
 function detectMotionEvent(tracks, t) {
-  if (t - lastTriggerT < settings.triggerCooldownMs) return;
-  let trigger = null;
-  for (const tr of tracks) {
-    if (tr.lastT - tr.firstT < settings.minDurationMs) continue;
-    if (!trigger || tr.framesSeen > trigger.framesSeen) trigger = tr;
-  }
+  const trigger = pickMotionEvent(tracks, {
+    minDurationMs: settings.minDurationMs,
+    cooldownMs: settings.triggerCooldownMs,
+    lastEventT: lastTriggerT, now: t,
+  });
   if (!trigger) return;
   lastTriggerT = t;
   noteClipEvent(trigger, t);
@@ -280,7 +281,8 @@ function noteClipEvent(track, t) {
     return;
   }
 
-  if (!activeClip) {
+  const action = clipEventAction(activeClip, t, { seriesGapMs: settings.seriesGapMs });
+  if (action === "start") {
     const cutoff = t - settings.preRollMs;
     const initialChunks = rollingChunks.filter((chunk) => chunk.t >= cutoff);
     activeClip = {
@@ -292,7 +294,7 @@ function noteClipEvent(track, t) {
       trackIds: [track.id],
     };
     statusLine.textContent = "Motion event detected. Recording clip.";
-  } else if (t - activeClip.lastEventT <= settings.seriesGapMs) {
+  } else if (action === "append") {
     activeClip.lastEventT = t;
     activeClip.eventCount++;
     if (!activeClip.trackIds.includes(track.id)) activeClip.trackIds.push(track.id);
@@ -304,9 +306,9 @@ function noteClipEvent(track, t) {
 }
 
 function maybeFinalizeClip(t) {
-  if (!activeClip) return;
-  const quietFor = t - activeClip.lastEventT;
-  if (quietFor >= Math.max(settings.postRollMs, settings.seriesGapMs)) finalizeClip(t);
+  if (shouldFinalizeClip(activeClip, t, { postRollMs: settings.postRollMs, seriesGapMs: settings.seriesGapMs })) {
+    finalizeClip(t);
+  }
 }
 
 async function finalizeClip(t) {
