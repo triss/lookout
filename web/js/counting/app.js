@@ -84,7 +84,11 @@ async function startCamera({ drawLineAfterStart = false } = {}) {
   updatePrimaryButton();
   resizeOverlay();
   if (drawLineAfterStart) beginLineDrawing();
-  else statusLine.textContent = line ? "Ready. Press Start observing." : "Camera ready. Use Redraw line to place your counting line.";
+  else statusLine.textContent = observing
+    ? "Observing. Counting crossings."
+    : line
+      ? "Ready. Press Start observing."
+      : "Camera ready. Use Redraw line to place your counting line.";
   loop();
 }
 
@@ -273,8 +277,7 @@ draw.addEventListener("pointerdown", (e) => {
     line = { a: pendingA, b: p };
     pendingA = null; drawMode = false;
     draw.classList.remove("drawing");
-    statusLine.textContent = "Line set. Press Start observing.";
-    updatePrimaryButton();
+    startObserving();
   }
 });
 
@@ -285,11 +288,8 @@ $("btnCamera").addEventListener("click", () => {
     return;
   }
   if (!line) return;
-  observing = !observing;
-  updatePrimaryButton();
-  if (observing && !sessionId) sessionId = makeSessionId();
-  statusLine.textContent = observing ? "Observing. Counting crossings." : "Paused.";
-  $("sessionId").textContent = sessionId || "–";
+  if (observing) stopObserving();
+  else startObserving();
 });
 $("btnSwitch").addEventListener("click", () => {
   settings.facing = settings.facing === "environment" ? "user" : "environment";
@@ -306,6 +306,21 @@ function beginLineDrawing() {
   drawMode = true; pendingA = null; draw.classList.add("drawing");
   updatePrimaryButton();
   statusLine.textContent = "Tap point A of the counting line.";
+}
+
+function startObserving() {
+  observing = true;
+  if (!sessionId) sessionId = makeSessionId();
+  $("sessionId").textContent = sessionId;
+  updatePrimaryButton();
+  statusLine.textContent = "Observing. Counting crossings.";
+}
+
+function stopObserving() {
+  observing = false;
+  updatePrimaryButton();
+  statusLine.textContent = "Paused.";
+  $("sessionId").textContent = sessionId || "–";
 }
 
 function updatePrimaryButton() {
