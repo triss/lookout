@@ -66,8 +66,7 @@ function frameToScreen(p) {
 }
 
 // ── Camera ─────────────────────────────────────────────────────────────────
-async function startCamera({ drawLineAfterStart = false, askFullscreen = false } = {}) {
-  if (askFullscreen) requestFullscreen();
+async function startCamera({ drawLineAfterStart = false } = {}) {
   stopStream();
   statusLine.textContent = "requesting camera…";
   try {
@@ -85,7 +84,7 @@ async function startCamera({ drawLineAfterStart = false, askFullscreen = false }
   }
   cam.srcObject = stream;
   cam.classList.toggle("mirror", settings.mirror);
-  await cam.play().catch(() => {});
+  cam.play().catch(() => {});
   cameraOn = true;
   for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = false;
   updatePrimaryButton();
@@ -116,8 +115,13 @@ function stopCamera() {
 
 function requestFullscreen() {
   const el = document.documentElement;
-  if (document.fullscreenElement || !el.requestFullscreen) return;
-  el.requestFullscreen().catch(() => {});
+  if (document.fullscreenElement) return Promise.resolve();
+  if (el.requestFullscreen) {
+    return el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+  } else if (el.webkitRequestFullscreen) {
+    el.webkitRequestFullscreen();
+  }
+  return Promise.resolve();
 }
 
 // ── Overlay sizing ──────────────────────────────────────────────────────────
@@ -297,9 +301,10 @@ draw.addEventListener("pointerdown", (e) => {
 });
 
 // ── UI wiring ────────────────────────────────────────────────────────────────
-$("btnCamera").addEventListener("click", () => {
+$("btnCamera").addEventListener("click", async () => {
   if (!cameraOn) {
-    startCamera({ drawLineAfterStart: true, askFullscreen: true });
+    await requestFullscreen();
+    startCamera({ drawLineAfterStart: true });
     return;
   }
   if (!line) return;
