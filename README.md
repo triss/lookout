@@ -75,6 +75,12 @@ Under `web/`:
   `web/speed.html` also contains the speed-calibration flow: place the phone,
   let motion/orientation sensors confirm it is still, capture a photo, then mark
   point pairs and enter the real distance between each pair.
+- `web/counting.html` — the first working use MVP: a full-screen camera counting
+  tool. Draw one line, count crossings (with direction A↔B) locally, tune
+  sensitivity/size/duration/cooldown for old phones, and export CSV/JSON. Counts
+  crossings, not people: observations-only by default, no footage, no cloud, with
+  a clear-local-data control. Logic lives in `web/js/counting/` (`blobs`,
+  `tracker`, `crossing`) and is covered by `web/tests/counting.test.mjs`.
 - `web/js/engine/` — the engine, as composable components: `gray`, `detect`
   (motion), `track` (ground-contact), `locate` (pluggable backends — only
   `BearingOnly` is implemented; the rest throw "needs calibration/reference"),

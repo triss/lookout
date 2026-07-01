@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>lookout · counting</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/counting.css">
+  <script src="js/theme.js"></script>
+</head>
+<body class="page-counting">
+  <!-- Full-screen camera -->
+  <div id="stage">
+    <video id="cam" playsinline muted autoplay aria-label="Live camera preview"></video>
+    <canvas id="draw" aria-label="Counting overlay"></canvas>
+    <p id="camHint" class="cam-hint">Camera off. Press <strong>Start camera</strong> to begin. Everything runs on this device.</p>
+  </div>
+
+  <!-- Top HUD: live totals + status -->
+  <header id="hudTop" aria-label="Live totals">
+    <div class="chips">
+      <span class="chip chip-total"><b id="cTotal">0</b> total</span>
+      <span class="chip"><b id="cAB">0</b> A→B</span>
+      <span class="chip"><b id="cBA">0</b> B→A</span>
+      <span class="chip"><b id="cTracks">0</b> tracks</span>
+      <span class="chip"><b id="cFps">–</b> fps</span>
+    </div>
+    <div class="chips right">
+      <span class="chip badge-local" title="Nothing leaves this device automatically">🔒 local only</span>
+      <span id="warnBattery" class="chip chip-warn" hidden></span>
+      <span id="warnDisk" class="chip chip-warn" hidden></span>
+    </div>
+  </header>
+
+  <!-- Bottom HUD: primary controls -->
+  <footer id="hudBottom">
+    <div class="row">
+      <button id="btnCamera" type="button" class="primary">Start camera</button>
+      <button id="btnObserve" type="button" class="go" disabled>Start observing</button>
+      <button id="btnSwitch" type="button" disabled title="Switch camera">⇄ Camera</button>
+    </div>
+    <div class="row">
+      <button id="btnDraw" type="button" disabled>Draw line</button>
+      <button id="btnFlip" type="button" disabled>Flip A/B</button>
+      <button id="btnClearLine" type="button" disabled>Clear line</button>
+      <button id="btnHelp" type="button">How it works</button>
+      <button id="btnSettings" type="button">Settings</button>
+      <button id="btnExport" type="button">Export</button>
+    </div>
+    <p id="status" role="status" aria-live="polite" class="status-line">Draw a line, then start observing. Counts crossings, not people.</p>
+  </footer>
+
+  <!-- HELP / description sheet -->
+  <section id="panelHelp" class="sheet" hidden aria-label="How counting works">
+    <div class="sheet-head"><h2>How counting works</h2><button class="sheet-close" data-close>✕</button></div>
+    <div class="sheet-body">
+      <p><strong>Count crossings, not people.</strong> lookout watches a fixed view, notices movement, and counts each time a moving blob crosses a line you draw. It stores timestamped <em>observations</em> — measurements only — on this device. No faces, no plates, no identity, no cloud, no continuous recording.</p>
+      <ol>
+        <li>Press <strong>Start camera</strong> and aim at a fixed spot.</li>
+        <li>Use <strong>Switch camera</strong> for front/back if needed.</li>
+        <li>Press <strong>Draw line</strong>, then tap two points to place your counting line. The two sides are labelled <b>A</b> and <b>B</b>.</li>
+        <li>Open <strong>Settings</strong> to choose direction behaviour, sensitivity, and privacy mode.</li>
+        <li>Press <strong>Start observing</strong>. Crossings are counted live.</li>
+        <li>Open <strong>Export</strong> to save a CSV/JSON count log, or clear local data.</li>
+      </ol>
+      <p class="muted">Tune <em>sensitivity</em>, <em>minimum size</em>, <em>minimum duration</em>, and <em>cooldown</em> in Settings to reduce false counts from leaves, shadows, rain, or camera shake. The camera runs at a low frame rate by default to suit older phones; the top bar shows the <em>measured</em> fps.</p>
+    </div>
+  </section>
+
+  <!-- SETTINGS sheet -->
+  <section id="panelSettings" class="sheet" hidden aria-label="Settings">
+    <div class="sheet-head"><h2>Settings</h2><button class="sheet-close" data-close>✕</button></div>
+    <div class="sheet-body">
+      <fieldset>
+        <legend>Camera</legend>
+        <label>Facing
+          <select id="setFacing"><option value="environment">Back</option><option value="user">Front</option></select>
+        </label>
+        <label>Resolution
+          <select id="setResolution"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+        </label>
+        <label>Target FPS
+          <select id="setFps"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option></select>
+        </label>
+        <label class="check"><input type="checkbox" id="setMirror"> Mirror preview</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Scene</legend>
+        <label>Observation name
+          <input type="text" id="setName" value="untitled_observation" autocomplete="off">
+        </label>
+        <label>View type
+          <select id="setViewType"><option>path</option><option>doorway</option><option>road</option><option>garden</option><option selected>other</option></select>
+        </label>
+        <p class="muted">Active area is the whole frame in this version. Ignore masks (trees, flags, reflections) are planned.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Counting rules</legend>
+        <label>Direction
+          <select id="setDirection">
+            <option value="both">Count both directions together</option>
+            <option value="separate" selected>Count separately by direction</option>
+            <option value="a_to_b">A → B only</option>
+            <option value="b_to_a">B → A only</option>
+          </select>
+        </label>
+        <label>Sensitivity
+          <select id="setSensitivity"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+        </label>
+        <label>Minimum size
+          <select id="setMinSize"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select>
+        </label>
+        <label>Minimum track duration
+          <select id="setMinDuration"><option value="500">0.5s</option><option value="1000" selected>1s</option><option value="2000">2s</option></select>
+        </label>
+        <label>Count cooldown
+          <select id="setCooldown"><option value="1000">1s</option><option value="3000" selected>3s</option><option value="5000">5s</option></select>
+        </label>
+        <label>Maximum lost frames
+          <select id="setMaxLost"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option></select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Privacy</legend>
+        <p id="privacyNote" class="privacy-note">Normal mode stores observations only. No stills or footage are saved.</p>
+        <label class="check"><input type="radio" name="privacy" value="normal" checked> Observations only (normal)</label>
+        <label class="check"><input type="radio" name="privacy" value="setup"> Also save one setup still (audit)</label>
+        <label class="check"><input type="radio" name="privacy" value="debug"> Debug overlay (development)</label>
+        <button id="btnSetupStill" type="button" disabled>Capture setup still</button>
+        <p id="setupStillNote" class="muted">Setup still documents how the line and view are configured. Disabled in normal mode.</p>
+      </fieldset>
+    </div>
+  </section>
+
+  <!-- EXPORT sheet -->
+  <section id="panelExport" class="sheet" hidden aria-label="Export and data">
+    <div class="sheet-head"><h2>Export &amp; data</h2><button class="sheet-close" data-close>✕</button></div>
+    <div class="sheet-body">
+      <dl class="facts">
+        <div><dt>Stored observations</dt><dd id="storedCount">–</dd></div>
+        <div><dt>Storage used</dt><dd id="storageUsed">–</dd></div>
+        <div><dt>Last event</dt><dd id="lastEvent">–</dd></div>
+        <div><dt>Session</dt><dd id="sessionId">–</dd></div>
+      </dl>
+      <div class="row wrap">
+        <button id="btnCsv" type="button">Export CSV</button>
+        <button id="btnJson" type="button">Export JSON</button>
+        <button id="btnSetupStillDownload" type="button" disabled>Export setup still</button>
+      </div>
+      <button id="btnClear" type="button" class="danger">Clear local observations</button>
+      <p class="muted">Default export contains measurements only — no images. Setup still, if captured, is exported as a separate file.</p>
+    </div>
+  </section>
+
+  <div id="scrim" hidden></div>
+
+  <script type="module" src="js/counting/app.js"></script>
+</body>
+</html>
