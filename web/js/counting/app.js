@@ -11,13 +11,11 @@ const USE = "counting";
 const PROC_W = 176; // processing width; keep small for old phones
 
 const RES_WIDTH = { low: 320, medium: 640, high: 1280 };
-const DIFF_THRESH = { low: 34, medium: 24, high: 16 };
-const MIN_AREA = { small: 5, medium: 14, large: 36 };
 
 const settings = {
   facing: "environment", resolution: "medium", targetFps: 10, mirror: false,
   name: "untitled_observation", viewType: "other",
-  directionMode: "separate", sensitivity: "medium", minSize: "medium",
+  directionMode: "separate", sensitivity: 24, minSize: 14,
   minDurationMs: 1000, cooldownMs: 3000, maxLost: 5,
   privacy: "normal",
 };
@@ -61,12 +59,16 @@ function frameToScreen(p) {
 }
 
 // ── Camera ─────────────────────────────────────────────────────────────────
-async function startCamera() {
+async function startCamera({ drawLineAfterStart = false } = {}) {
   stopStream();
   statusLine.textContent = "requesting camera…";
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: settings.facing }, width: { ideal: RES_WIDTH[settings.resolution] } },
+      video: {
+        facingMode: { ideal: settings.facing },
+        width: { ideal: RES_WIDTH[settings.resolution] },
+        frameRate: { ideal: settings.targetFps },
+      },
       audio: false,
     });
   } catch (e) {
@@ -78,12 +80,11 @@ async function startCamera() {
   await cam.play().catch(() => {});
   cameraOn = true;
   camHint.hidden = true;
-  $("btnCamera").textContent = "Stop camera";
-  $("btnCamera").classList.remove("primary");
-  for (const id of ["btnObserve", "btnSwitch", "btnDraw", "btnFlip"]) $(id).disabled = false;
-  refreshObserveEnabled();
+  for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = false;
+  updatePrimaryButton();
   resizeOverlay();
-  statusLine.textContent = line ? "Ready. Press Start observing." : "Press Draw line, then place your counting line.";
+  if (drawLineAfterStart) beginLineDrawing();
+  else statusLine.textContent = line ? "Ready. Press Start observing." : "Camera ready. Use Redraw line to place your counting line.";
   loop();
 }
 
@@ -97,10 +98,8 @@ function stopCamera() {
   cancelAnimationFrame(rafId);
   dctx.clearRect(0, 0, draw.width, draw.height);
   camHint.hidden = false;
-  $("btnCamera").textContent = "Start camera";
-  $("btnCamera").classList.add("primary");
-  setObserveButton(false);
-  for (const id of ["btnObserve", "btnSwitch", "btnDraw", "btnFlip"]) $(id).disabled = true;
+  updatePrimaryButton();
+  for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = true;
 }
 
 // ── Overlay sizing ──────────────────────────────────────────────────────────
@@ -130,10 +129,10 @@ function loop() {
 
   let blobs = [];
   if (prevGray && prevGray.length === gray.length) {
-    const thresh = DIFF_THRESH[settings.sensitivity];
+    const thresh = settings.sensitivity;
     const mask = new Uint8Array(gray.length);
     for (let i = 0; i < gray.length; i++) if (Math.abs(gray[i] - prevGray[i]) > thresh) mask[i] = 1;
-    blobs = extractBlobs(mask, PROC_W, procH, MIN_AREA[settings.minSize]);
+    blobs = extractBlobs(mask, PROC_W, procH, settings.minSize);
   }
   prevGray = gray;
 
@@ -275,41 +274,55 @@ draw.addEventListener("pointerdown", (e) => {
     pendingA = null; drawMode = false;
     draw.classList.remove("drawing");
     statusLine.textContent = "Line set. Press Start observing.";
-    refreshObserveEnabled();
+    updatePrimaryButton();
   }
 });
 
-function refreshObserveEnabled() { $("btnObserve").disabled = !(cameraOn && line); }
-
 // ── UI wiring ────────────────────────────────────────────────────────────────
-$("btnCamera").addEventListener("click", () => (cameraOn ? stopCamera() : startCamera()));
+$("btnCamera").addEventListener("click", () => {
+  if (!cameraOn) {
+    startCamera({ drawLineAfterStart: true });
+    return;
+  }
+  if (!line) return;
+  observing = !observing;
+  updatePrimaryButton();
+  if (observing && !sessionId) sessionId = makeSessionId();
+  statusLine.textContent = observing ? "Observing. Counting crossings." : "Paused.";
+  $("sessionId").textContent = sessionId || "–";
+});
 $("btnSwitch").addEventListener("click", () => {
   settings.facing = settings.facing === "environment" ? "user" : "environment";
   $("setFacing").value = settings.facing;
   if (cameraOn) startCamera();
 });
-$("btnObserve").addEventListener("click", () => {
-  observing = !observing;
-  setObserveButton(observing);
-  if (observing && !sessionId) sessionId = makeSessionId();
-  statusLine.textContent = observing ? "Observing. Counting crossings." : "Paused.";
-  $("sessionId").textContent = sessionId || "–";
-});
 $("btnDraw").addEventListener("click", () => {
-  line = null;
-  if (observing) { observing = false; setObserveButton(false); }
-  drawMode = true; pendingA = null; draw.classList.add("drawing");
-  refreshObserveEnabled();
-  statusLine.textContent = "Tap point A of the counting line.";
-});
-$("btnFlip").addEventListener("click", () => {
-  if (line) { line = { a: line.b, b: line.a }; statusLine.textContent = "A/B sides swapped."; }
+  beginLineDrawing();
 });
 
-function setObserveButton(on) {
-  const b = $("btnObserve");
-  b.textContent = on ? "Stop observing" : "Start observing";
-  b.classList.toggle("observing", on);
+function beginLineDrawing() {
+  line = null;
+  if (observing) { observing = false; updatePrimaryButton(); }
+  drawMode = true; pendingA = null; draw.classList.add("drawing");
+  updatePrimaryButton();
+  statusLine.textContent = "Tap point A of the counting line.";
+}
+
+function updatePrimaryButton() {
+  const b = $("btnCamera");
+  b.classList.toggle("observing", observing);
+  b.classList.toggle("primary", !cameraOn);
+  b.classList.toggle("go", cameraOn && !!line && !observing);
+  if (!cameraOn) {
+    b.disabled = false;
+    b.textContent = "Start camera";
+  } else if (!line) {
+    b.disabled = true;
+    b.textContent = "Place line first";
+  } else {
+    b.disabled = false;
+    b.textContent = observing ? "Stop observing" : "Start observing";
+  }
 }
 function makeSessionId() {
   const day = new Date().toISOString().slice(0, 10);
@@ -335,16 +348,41 @@ for (const btn of document.querySelectorAll("[data-close]")) btn.addEventListene
 const bind = (id, key, fn = (v) => v) => $(id).addEventListener("change", (e) => {
   const v = e.target.type === "checkbox" ? e.target.checked : e.target.value;
   settings[key] = fn(v);
-  if ((key === "resolution" || key === "facing") && cameraOn) startCamera();
+  if ((key === "resolution" || key === "facing" || key === "targetFps") && cameraOn) startCamera();
   if (key === "mirror") cam.classList.toggle("mirror", settings.mirror);
   if (key === "maxLost") tracker = createMultiTracker({ maxLost: settings.maxLost });
 });
+function bindNumberPair(rangeId, numberId, key, onCommit = () => {}) {
+  const range = $(rangeId);
+  const number = $(numberId);
+  const min = Number(number.min);
+  const max = Number(number.max);
+  const set = (raw, commit = false) => {
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    const value = Math.min(max, Math.max(min, parsed));
+    settings[key] = value;
+    range.value = value;
+    number.value = value;
+    if (commit) onCommit();
+  };
+  range.addEventListener("input", (e) => set(e.target.value));
+  range.addEventListener("change", (e) => set(e.target.value, true));
+  number.addEventListener("input", (e) => set(e.target.value));
+  number.addEventListener("change", (e) => set(e.target.value, true));
+}
 bind("setFacing", "facing"); bind("setResolution", "resolution");
-bind("setFps", "targetFps", Number); bind("setMirror", "mirror");
+bind("setMirror", "mirror");
 bind("setName", "name"); bind("setViewType", "viewType");
-bind("setDirection", "directionMode"); bind("setSensitivity", "sensitivity");
-bind("setMinSize", "minSize"); bind("setMinDuration", "minDurationMs", Number);
-bind("setCooldown", "cooldownMs", Number); bind("setMaxLost", "maxLost", Number);
+bind("setDirection", "directionMode");
+bindNumberPair("setFps", "setFpsNumber", "targetFps", () => { if (cameraOn) startCamera(); });
+bindNumberPair("setSensitivity", "setSensitivityNumber", "sensitivity");
+bindNumberPair("setMinSize", "setMinSizeNumber", "minSize");
+bindNumberPair("setMinDuration", "setMinDurationNumber", "minDurationMs");
+bindNumberPair("setCooldown", "setCooldownNumber", "cooldownMs");
+bindNumberPair("setMaxLost", "setMaxLostNumber", "maxLost", () => {
+  tracker = createMultiTracker({ maxLost: settings.maxLost });
+});
 
 for (const radio of document.querySelectorAll('input[name="privacy"]')) {
   radio.addEventListener("change", (e) => {
@@ -405,7 +443,7 @@ $("btnJson").addEventListener("click", async () => {
     camera: { facing: settings.facing, requested_fps: settings.targetFps, measured_fps: Math.round(fpsEMA * 10) / 10,
       resolution: { width: track.width || null, height: track.height || null } },
     privacy_mode: settings.privacy,
-    counting: { mode: "line_crossing", direction_mode: settings.directionMode, cooldown_ms: settings.cooldownMs, minimum_track_duration_ms: settings.minDurationMs },
+    counting: { mode: "line_crossing", direction_mode: settings.directionMode, sensitivity_threshold: settings.sensitivity, minimum_blob_area_px: settings.minSize, cooldown_ms: settings.cooldownMs, minimum_track_duration_ms: settings.minDurationMs },
     geometry: { line: line ? { id: "main", a_norm: line.a, b_norm: line.b } : null, active_area: null, ignore_areas: [] },
     setup_still: setupStill ? setupStill.filename : null,
   };

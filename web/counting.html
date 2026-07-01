@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/counting.css">
   <script src="js/theme.js"></script>
 </head>
-<body class="page-counting">
+<body class="page-counting" data-theme-picker-target="countingThemePicker">
   <!-- Full-screen camera -->
   <div id="stage">
     <video id="cam" playsinline muted autoplay aria-label="Live camera preview"></video>
@@ -35,17 +35,15 @@
   <footer id="hudBottom">
     <div class="row">
       <button id="btnCamera" type="button" class="primary">Start camera</button>
-      <button id="btnObserve" type="button" class="go" disabled>Start observing</button>
       <button id="btnSwitch" class="small" type="button" disabled title="Switch camera">⇄ Camera</button>
     </div>
     <div class="row">
-      <button id="btnDraw" type="button" disabled>Draw line</button>
-      <button id="btnFlip" type="button" disabled>Swap A/B sides</button>
+      <button id="btnDraw" type="button" disabled>Redraw line</button>
       <button id="btnHelp" type="button">How it works</button>
       <button id="btnSettings" type="button">Settings</button>
       <button id="btnExport" type="button">Export</button>
     </div>
-    <p id="status" role="status" aria-live="polite" class="status-line">Draw a line, then start observing. Counts crossings, not people.</p>
+    <p id="status" role="status" aria-live="polite" class="status-line">Start the camera, draw a line, then start observing. Counts crossings, not people.</p>
   </footer>
 
   <!-- HELP / description sheet -->
@@ -54,11 +52,11 @@
     <div class="sheet-body">
       <p><strong>Count crossings, not people.</strong> lookout watches a fixed view, notices movement, and counts each time a moving blob crosses a line you draw. It stores timestamped <em>observations</em> — measurements only — on this device. No faces, no plates, no identity, no cloud, no continuous recording.</p>
       <ol>
-        <li>Press <strong>Start camera</strong> and aim at a fixed spot.</li>
+        <li>Press <strong>Start camera</strong> and aim at a fixed spot. Line drawing starts automatically.</li>
         <li>Use <strong>Switch camera</strong> for front/back if needed.</li>
-        <li>Press <strong>Draw line</strong>, then tap two points to place your counting line. Drawing a new line replaces the old one. The two sides are labelled <b>A</b> and <b>B</b>; use <strong>Swap A/B sides</strong> if you want the direction names reversed.</li>
+        <li>Tap two points to place your counting line. Use <strong>Redraw line</strong> if you need to replace it.</li>
         <li>Open <strong>Settings</strong> to choose direction behaviour, sensitivity, and privacy mode.</li>
-        <li>Press <strong>Start observing</strong>. Crossings are counted live.</li>
+        <li>Press <strong>Start observing</strong>. The same button becomes <strong>Stop observing</strong> while counting is active.</li>
         <li>Open <strong>Export</strong> to save a CSV/JSON count log, or clear local data.</li>
       </ol>
       <p class="muted">Tune <em>sensitivity</em>, <em>minimum size</em>, <em>minimum duration</em>, and <em>cooldown</em> in Settings to reduce false counts from leaves, shadows, rain, or camera shake. The camera runs at a low frame rate by default to suit older phones; the top bar shows the <em>measured</em> fps.</p>
@@ -77,10 +75,18 @@
         <label>Resolution
           <select id="setResolution"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
         </label>
-        <label>Target FPS
-          <select id="setFps"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option></select>
+        <label class="number-control">Target FPS
+          <span class="number-row">
+            <input id="setFps" type="range" min="1" max="30" step="1" value="10">
+            <input id="setFpsNumber" type="number" min="1" max="30" step="1" value="10" inputmode="numeric" aria-label="Target FPS">
+          </span>
         </label>
         <label class="check"><input type="checkbox" id="setMirror"> Mirror preview</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Appearance</legend>
+        <div id="countingThemePicker"></div>
       </fieldset>
 
       <fieldset>
@@ -104,20 +110,37 @@
             <option value="b_to_a">B → A only</option>
           </select>
         </label>
-        <label>Sensitivity
-          <select id="setSensitivity"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+        <label class="number-control">Sensitivity threshold
+          <span class="number-row">
+            <input id="setSensitivity" type="range" min="8" max="48" step="1" value="24">
+            <input id="setSensitivityNumber" type="number" min="8" max="48" step="1" value="24" inputmode="numeric" aria-label="Sensitivity threshold">
+          </span>
+          <span class="muted">Lower numbers notice smaller changes; higher numbers ignore more noise.</span>
         </label>
-        <label>Minimum size
-          <select id="setMinSize"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select>
+        <label class="number-control">Minimum size
+          <span class="number-row">
+            <input id="setMinSize" type="range" min="1" max="80" step="1" value="14">
+            <input id="setMinSizeNumber" type="number" min="1" max="80" step="1" value="14" inputmode="numeric" aria-label="Minimum blob size">
+          </span>
+          <span class="muted">Minimum moving blob area, in processing pixels.</span>
         </label>
-        <label>Minimum track duration
-          <select id="setMinDuration"><option value="500">0.5s</option><option value="1000" selected>1s</option><option value="2000">2s</option></select>
+        <label class="number-control">Minimum track duration (ms)
+          <span class="number-row">
+            <input id="setMinDuration" type="range" min="100" max="5000" step="100" value="1000">
+            <input id="setMinDurationNumber" type="number" min="100" max="5000" step="100" value="1000" inputmode="numeric" aria-label="Minimum track duration in milliseconds">
+          </span>
         </label>
-        <label>Count cooldown
-          <select id="setCooldown"><option value="1000">1s</option><option value="3000" selected>3s</option><option value="5000">5s</option></select>
+        <label class="number-control">Count cooldown (ms)
+          <span class="number-row">
+            <input id="setCooldown" type="range" min="250" max="10000" step="250" value="3000">
+            <input id="setCooldownNumber" type="number" min="250" max="10000" step="250" value="3000" inputmode="numeric" aria-label="Count cooldown in milliseconds">
+          </span>
         </label>
-        <label>Maximum lost frames
-          <select id="setMaxLost"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option></select>
+        <label class="number-control">Maximum lost frames
+          <span class="number-row">
+            <input id="setMaxLost" type="range" min="1" max="30" step="1" value="5">
+            <input id="setMaxLostNumber" type="number" min="1" max="30" step="1" value="5" inputmode="numeric" aria-label="Maximum lost frames">
+          </span>
         </label>
       </fieldset>
 

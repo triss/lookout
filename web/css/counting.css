@@ -104,6 +104,14 @@ html, body.page-counting {
 #hudBottom button.small { flex: 0 0 auto; min-width: 5.5rem; }
 .status-line { margin: 0; font-size: .82rem; color: var(--muted); }
 
+.page-counting #themePicker {
+  position: static;
+  width: max-content;
+  max-width: 100%;
+  box-shadow: none;
+  opacity: 1;
+}
+
 /* Sliding sheets */
 .sheet {
   position: fixed;
@@ -134,7 +142,7 @@ html, body.page-counting {
 .sheet-body legend { font-weight: 800; padding: 0 .35rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; font-size: .78rem; }
 .sheet-body label { display: grid; gap: .25rem; font-size: .9rem; }
 .sheet-body label.check { grid-template-columns: auto 1fr; align-items: center; gap: .5rem; }
-.sheet-body select, .sheet-body input[type="text"] {
+.sheet-body select, .sheet-body input[type="text"], .sheet-body input[type="number"] {
   min-height: 2.4rem;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -142,6 +150,20 @@ html, body.page-counting {
   color: var(--text);
   font: inherit;
   padding: .3rem .5rem;
+}
+.number-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem;
+  gap: .5rem;
+  align-items: center;
+}
+.number-row input[type="range"] {
+  width: 100%;
+  min-width: 0;
+}
+.number-row input[type="number"] {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
 }
 .sheet-body .row { display: flex; gap: .5rem; flex-wrap: wrap; }
 .sheet-body .row button, #btnSetupStill, #btnClear {

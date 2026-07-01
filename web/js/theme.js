@@ -54,7 +54,9 @@
 
     wrap.appendChild(label);
     wrap.appendChild(select);
-    document.body.appendChild(wrap);
+    var targetId = document.body.getAttribute("data-theme-picker-target");
+    var target = targetId ? document.getElementById(targetId) : null;
+    (target || document.body).appendChild(wrap);
   }
 
   if (document.readyState === "loading") {
