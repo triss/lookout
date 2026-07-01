@@ -72,35 +72,6 @@
     <div class="sheet-head"><h2>Settings</h2><button class="sheet-close" data-close>✕</button></div>
     <div class="sheet-body">
       <fieldset>
-        <legend>Camera</legend>
-        <label>Facing
-          <select id="setFacing"><option value="environment">Back</option><option value="user">Front</option></select>
-        </label>
-        <label>Resolution
-          <select id="setResolution"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
-        </label>
-        <label class="number-control">Target FPS
-          <span class="number-row">
-            <input id="setFps" type="range" min="1" max="30" step="1" value="10">
-            <input id="setFpsNumber" type="number" min="1" max="30" step="1" value="10" inputmode="numeric" aria-label="Target FPS">
-          </span>
-        </label>
-        <label class="check"><input type="checkbox" id="setMirror"> Mirror preview</label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Appearance</legend>
-        <label>Theme
-          <select id="themeSelect">
-            <option value="system">System</option>
-            <option value="dark">Dark</option>
-            <option value="beige">Beige</option>
-            <option value="blue">Blue</option>
-          </select>
-        </label>
-      </fieldset>
-
-      <fieldset>
         <legend>Scene</legend>
         <label>Observation name
           <input type="text" id="setName" value="untitled_observation" autocomplete="off">
@@ -152,6 +123,40 @@
             <input id="setMaxLost" type="range" min="1" max="30" step="1" value="5">
             <input id="setMaxLostNumber" type="number" min="1" max="30" step="1" value="5" inputmode="numeric" aria-label="Maximum lost frames">
           </span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Camera</legend>
+        <label>Facing
+          <select id="setFacing"><option value="environment">Back</option><option value="user">Front</option></select>
+        </label>
+        <label>Resolution
+          <select id="setResolution"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+        </label>
+        <label class="number-control">Target FPS
+          <span class="number-row">
+            <input id="setFps" type="range" min="1" max="30" step="1" value="10">
+            <input id="setFpsNumber" type="number" min="1" max="30" step="1" value="10" inputmode="numeric" aria-label="Target FPS">
+          </span>
+        </label>
+        <label class="check"><input type="checkbox" id="setMirror"> Mirror preview</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Storage</legend>
+        <p class="muted">Observations are stored locally in this browser. Use <strong>Share Data</strong> to export CSV/JSON or clear local observations.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>App</legend>
+        <label>Theme
+          <select id="themeSelect">
+            <option value="system">System</option>
+            <option value="dark">Dark</option>
+            <option value="beige">Beige</option>
+            <option value="blue">Blue</option>
+          </select>
         </label>
       </fieldset>
 
