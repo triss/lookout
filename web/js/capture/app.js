@@ -6,7 +6,9 @@ import { extractBlobs } from "../counting/blobs.js";
 import { createMultiTracker } from "../counting/tracker.js";
 import { crossingDirection, countsForMode } from "../counting/crossing.js";
 import { makeZip } from "../tools/zip.js";
+import { shareOrDownloadMedia } from "../tools/share.js";
 import { openObservationStore } from "../engine/store.js";
+import { initWarnings } from "../tools/warnings.js";
 
 const USE = "capture";
 const PROC_W = 176; // processing width; keep small for old phones
@@ -640,31 +642,6 @@ function download(text, type, ext) {
   URL.revokeObjectURL(a.href);
 }
 
-async function shareOrDownloadMedia(records) {
-  if (!records.length) return "no stills";
-  const canCreateFile = typeof File !== "undefined";
-  const files = canCreateFile
-    ? records.map((record) => new File([record.blob], record.filename, { type: record.mime }))
-    : [];
-  if (files.length && navigator.canShare?.({ files })) {
-    try {
-      await navigator.share({ files, title: "lookout observation stills" });
-      return "shared";
-    } catch (e) {
-      if (e.name === "AbortError") return "cancelled";
-      console.warn("Share failed, falling back to download:", e);
-    }
-  }
-  for (const record of records) {
-    const url = URL.createObjectURL(record.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = record.filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-  return "downloaded";
-}
 
 $("btnCsv").addEventListener("click", async () => {
   download(await store.exportCSV({ use: USE }), "text/csv", "csv");
@@ -735,7 +712,7 @@ $("btnShareStills").addEventListener("click", async () => {
       statusLine.textContent = "No stills captured.";
       return;
     }
-    const result = await shareOrDownloadMedia(records);
+    const result = await shareOrDownloadMedia(records, "lookout observation stills");
     statusLine.textContent = result === "shared"
       ? "Stills shared."
       : result === "downloaded"
@@ -827,23 +804,6 @@ $("btnClear").addEventListener("click", async () => {
 });
 
 // ── Battery / disk warnings ──────────────────────────────────────────────────
-async function initWarnings() {
-  try {
-    const bat = await navigator.getBattery?.();
-    if (bat) {
-      const upd = () => {
-        const low = bat.level < 0.15 && !bat.charging;
-        $("warnBattery").hidden = !low;
-        $("warnBattery").textContent = `🔋 ${Math.round(bat.level * 100)}%`;
-      };
-      bat.addEventListener("levelchange", upd); bat.addEventListener("chargingchange", upd); upd();
-    }
-  } catch (e) { /* no battery API */ }
-  if (navigator.storage?.estimate) {
-    const { usage, quota } = await navigator.storage.estimate();
-    if (quota && usage / quota > 0.9) { $("warnDisk").hidden = false; $("warnDisk").textContent = "💾 storage low"; }
-  }
-}
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 (async function boot() {

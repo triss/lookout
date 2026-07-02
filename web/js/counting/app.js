@@ -6,6 +6,7 @@ import { extractBlobs } from "./blobs.js";
 import { createMultiTracker } from "./tracker.js";
 import { crossingDirection, countsForMode } from "./crossing.js";
 import { openObservationStore } from "../engine/store.js";
+import { initWarnings } from "../tools/warnings.js";
 
 const USE = "counting";
 const PROC_W = 176; // processing width; keep small for old phones
@@ -467,23 +468,6 @@ $("btnClear").addEventListener("click", async () => {
 });
 
 // ── Battery / disk warnings ──────────────────────────────────────────────────
-async function initWarnings() {
-  try {
-    const bat = await navigator.getBattery?.();
-    if (bat) {
-      const upd = () => {
-        const low = bat.level < 0.15 && !bat.charging;
-        $("warnBattery").hidden = !low;
-        $("warnBattery").textContent = `🔋 ${Math.round(bat.level * 100)}%`;
-      };
-      bat.addEventListener("levelchange", upd); bat.addEventListener("chargingchange", upd); upd();
-    }
-  } catch (e) { /* no battery API */ }
-  if (navigator.storage?.estimate) {
-    const { usage, quota } = await navigator.storage.estimate();
-    if (quota && usage / quota > 0.9) { $("warnDisk").hidden = false; $("warnDisk").textContent = "💾 storage low"; }
-  }
-}
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 (async function boot() {

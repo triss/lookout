@@ -6,7 +6,9 @@ import { createMultiTracker } from "../counting/tracker.js";
 import { pickMotionEvent } from "../tools/motion-trigger.js";
 import { clipEventAction, shouldFinalizeClip } from "../tools/clip-series.js";
 import { makeZip } from "../tools/zip.js";
+import { shareOrDownloadMedia } from "../tools/share.js";
 import { openObservationStore } from "../engine/store.js";
+import { initWarnings } from "../tools/warnings.js";
 
 const USE = "security_clips";
 const PROC_W = 176;
@@ -612,30 +614,6 @@ function download(text, type, ext) {
   URL.revokeObjectURL(a.href);
 }
 
-async function shareOrDownloadMedia(records) {
-  if (!records.length) return "no clips";
-  const canCreateFile = typeof File !== "undefined";
-  const files = canCreateFile
-    ? records.map((record) => new File([record.blob], record.filename, { type: record.mime }))
-    : [];
-  if (files.length && navigator.canShare?.({ files })) {
-    try {
-      await navigator.share({ files, title: "lookout security clips" });
-      return "shared";
-    } catch (e) {
-      if (e.name === "AbortError") return "cancelled";
-    }
-  }
-  for (const record of records) {
-    const url = URL.createObjectURL(record.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = record.filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-  return "downloaded";
-}
 
 
 $("btnCsv").addEventListener("click", async () => {
@@ -683,7 +661,7 @@ $("btnShareClips").addEventListener("click", async () => {
   try {
     statusLine.textContent = "Preparing clips...";
     const records = await store.listMedia({ use: USE, limit: 500 });
-    const result = await shareOrDownloadMedia(records);
+    const result = await shareOrDownloadMedia(records, "lookout security clips");
     statusLine.textContent = result === "shared" ? "Clips shared." : result === "downloaded" ? "Clips downloaded." : "Cancelled.";
   } catch (e) {
     statusLine.textContent = "sharing failed: " + e.message;
@@ -748,28 +726,6 @@ $("btnClear").addEventListener("click", async () => {
   statusLine.textContent = "Local clip observations cleared.";
 });
 
-async function initWarnings() {
-  try {
-    const bat = await navigator.getBattery?.();
-    if (bat) {
-      const upd = () => {
-        const low = bat.level < 0.15 && !bat.charging;
-        $("warnBattery").hidden = !low;
-        $("warnBattery").textContent = `battery ${Math.round(bat.level * 100)}%`;
-      };
-      bat.addEventListener("levelchange", upd);
-      bat.addEventListener("chargingchange", upd);
-      upd();
-    }
-  } catch (e) { /* no battery API */ }
-  if (navigator.storage?.estimate) {
-    const { usage, quota } = await navigator.storage.estimate();
-    if (quota && usage / quota > 0.9) {
-      $("warnDisk").hidden = false;
-      $("warnDisk").textContent = "storage low";
-    }
-  }
-}
 
 (async function boot() {
   store = await openObservationStore();
