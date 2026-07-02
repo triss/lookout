@@ -14,12 +14,13 @@ import { createSettingsBinder } from "../tools/settings.js";
 import { initWarnings } from "../tools/warnings.js";
 
 const USE = "security";
-const PROC_W = 176;
+const DEFAULT_PROCESSING_WIDTH = 176;
 const settings = {
   facing: "environment",
   resolution: "medium",
   targetFps: 10,
   mirror: false,
+  processingWidth: DEFAULT_PROCESSING_WIDTH,
   name: "security_watch",
   viewType: "doorway",
   sensitivity: 24,
@@ -63,7 +64,7 @@ const camera = createCameraController({
   video: cam,
   overlay: draw,
   workCanvas: work,
-  processingWidth: PROC_W,
+  processingWidth: () => settings.processingWidth,
   settings,
   statusLine,
   onResize: ({ processingHeight }) => { procH = processingHeight; },
@@ -122,8 +123,9 @@ function loop() {
 
   if (!cam.videoWidth) return;
   if (work.height !== procH) work.height = procH;
-  wctx.drawImage(cam, 0, 0, PROC_W, procH);
-  const gray = toGray(wctx.getImageData(0, 0, PROC_W, procH));
+  const procW = settings.processingWidth;
+  wctx.drawImage(cam, 0, 0, procW, procH);
+  const gray = toGray(wctx.getImageData(0, 0, procW, procH));
 
   let blobs = [];
   if (prevGray && prevGray.length === gray.length) {
@@ -131,7 +133,7 @@ function loop() {
     for (let i = 0; i < gray.length; i++) {
       if (Math.abs(gray[i] - prevGray[i]) > settings.sensitivity) mask[i] = 1;
     }
-    blobs = extractBlobs(mask, PROC_W, procH, settings.minSize);
+    blobs = extractBlobs(mask, procW, procH, settings.minSize);
   }
   prevGray = gray;
 
@@ -218,7 +220,7 @@ function render(tracks) {
     dctx.strokeStyle = "rgba(110,231,155,.9)";
     dctx.lineWidth = 1.5;
     for (const tr of tracks || []) {
-      const s = frameToScreen({ x: tr.cx / PROC_W, y: tr.cy / procH });
+      const s = frameToScreen({ x: tr.cx / settings.processingWidth, y: tr.cy / procH });
       dctx.beginPath();
       dctx.arc(s.x, s.y, 6, 0, Math.PI * 2);
       dctx.stroke();
@@ -303,11 +305,17 @@ const { bind, bindNumberPair } = createSettingsBinder({
     if ((key === "resolution" || key === "facing") && camera.isOn()) startCamera();
     if (key === "mirror") camera.applyMirror();
     if (key === "showOverlay") render([]);
+    if (key === "processingWidth") {
+      prevGray = null;
+      tracker = createMultiTracker({ maxLost: settings.maxLost });
+      camera.resizeOverlay();
+    }
   },
 });
 
 bind("setFacing", "facing");
 bind("setResolution", "resolution");
+bind("setProcessingWidth", "processingWidth", Number);
 bind("setMirror", "mirror");
 bind("setName", "name");
 bind("setViewType", "viewType");
@@ -469,6 +477,7 @@ $("btnJson").addEventListener("click", async () => {
       facing: settings.facing,
       requested_fps: settings.targetFps,
       measured_fps: Math.round(fpsEMA * 10) / 10,
+      processing_width: settings.processingWidth,
       resolution: { width: track.width || null, height: track.height || null },
     },
     security: {

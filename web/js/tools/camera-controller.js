@@ -33,18 +33,22 @@ export function createCameraController({
 }) {
   let stream = null;
   let cameraOn = false;
+  const currentProcessingWidth = () => typeof processingWidth === "function"
+    ? processingWidth()
+    : processingWidth;
 
   function resizeOverlay() {
     overlay.width = overlay.clientWidth;
     overlay.height = overlay.clientHeight;
+    const procW = currentProcessingWidth();
     const processingHeight = video.videoWidth
-      ? Math.round(processingWidth * video.videoHeight / video.videoWidth)
-      : Math.round(processingWidth * 9 / 16);
-    if (workCanvas && (workCanvas.width !== processingWidth || workCanvas.height !== processingHeight)) {
-      workCanvas.width = processingWidth;
+      ? Math.round(procW * video.videoHeight / video.videoWidth)
+      : Math.round(procW * 9 / 16);
+    if (workCanvas && (workCanvas.width !== procW || workCanvas.height !== processingHeight)) {
+      workCanvas.width = procW;
       workCanvas.height = processingHeight;
     }
-    onResize({ processingHeight });
+    onResize({ processingWidth: procW, processingHeight });
     return processingHeight;
   }
 

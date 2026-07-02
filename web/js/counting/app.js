@@ -12,10 +12,11 @@ import { createSettingsBinder } from "../tools/settings.js";
 import { initWarnings } from "../tools/warnings.js";
 
 const USE = "counting";
-const PROC_W = 176; // processing width; keep small for old phones
+const DEFAULT_PROCESSING_WIDTH = 176; // keep small for old phones
 
 const settings = {
   facing: "environment", resolution: "medium", targetFps: 10, mirror: false,
+  processingWidth: DEFAULT_PROCESSING_WIDTH,
   name: "untitled_observation", viewType: "other",
   directionMode: "separate", sensitivity: 24, minSize: 14,
   minDurationMs: 1000, cooldownMs: 3000, maxLost: 5,
@@ -32,7 +33,7 @@ const camera = createCameraController({
   video: cam,
   overlay: draw,
   workCanvas: work,
-  processingWidth: PROC_W,
+  processingWidth: () => settings.processingWidth,
   settings,
   statusLine,
   onResize: ({ processingHeight }) => { procH = processingHeight; },
@@ -106,15 +107,16 @@ function loop() {
 
   if (!cam.videoWidth) return;
   if (work.height !== procH) { work.height = procH; }
-  wctx.drawImage(cam, 0, 0, PROC_W, procH);
-  const gray = toGray(wctx.getImageData(0, 0, PROC_W, procH));
+  const procW = settings.processingWidth;
+  wctx.drawImage(cam, 0, 0, procW, procH);
+  const gray = toGray(wctx.getImageData(0, 0, procW, procH));
 
   let blobs = [];
   if (prevGray && prevGray.length === gray.length) {
     const thresh = settings.sensitivity;
     const mask = new Uint8Array(gray.length);
     for (let i = 0; i < gray.length; i++) if (Math.abs(gray[i] - prevGray[i]) > thresh) mask[i] = 1;
-    blobs = extractBlobs(mask, PROC_W, procH, settings.minSize);
+    blobs = extractBlobs(mask, procW, procH, settings.minSize);
   }
   prevGray = gray;
 
@@ -130,8 +132,8 @@ function loop() {
 function countCrossings(tracks, t) {
   for (const tr of tracks) {
     if (!tr.moved) continue;
-    const prev = { x: tr.prevCx / PROC_W, y: tr.prevCy / procH };
-    const cur = { x: tr.cx / PROC_W, y: tr.cy / procH };
+    const prev = { x: tr.prevCx / settings.processingWidth, y: tr.prevCy / procH };
+    const cur = { x: tr.cx / settings.processingWidth, y: tr.cy / procH };
     const dir = crossingDirection(prev, cur, line.a, line.b);
     if (!dir) continue;
     if (tr.lastT - tr.firstT < settings.minDurationMs) continue;
@@ -167,7 +169,7 @@ function render(tracks) {
   dctx.strokeStyle = "rgba(110,231,155,.9)";
   dctx.lineWidth = 1.5;
   for (const tr of tracks || []) {
-    const s = frameToScreen({ x: tr.cx / PROC_W, y: tr.cy / procH });
+    const s = frameToScreen({ x: tr.cx / settings.processingWidth, y: tr.cy / procH });
     dctx.beginPath(); dctx.arc(s.x, s.y, 6, 0, Math.PI * 2); dctx.stroke();
   }
   const a = drawMode && pendingA ? pendingA : line?.a;
@@ -345,9 +347,15 @@ const { bind, bindNumberPair } = createSettingsBinder({
     if ((key === "resolution" || key === "facing" || key === "targetFps") && camera.isOn()) startCamera();
     if (key === "mirror") camera.applyMirror();
     if (key === "maxLost") tracker = createMultiTracker({ maxLost: settings.maxLost });
+    if (key === "processingWidth") {
+      prevGray = null;
+      tracker = createMultiTracker({ maxLost: settings.maxLost });
+      camera.resizeOverlay();
+    }
   },
 });
 bind("setFacing", "facing"); bind("setResolution", "resolution");
+bind("setProcessingWidth", "processingWidth", Number);
 bind("setMirror", "mirror");
 bind("setName", "name"); bind("setViewType", "viewType");
 bind("setDirection", "directionMode");
@@ -395,7 +403,7 @@ $("btnJson").addEventListener("click", async () => {
     schema: "lookout.count.session.v1",
     session_id: sessionId, created_at_utc: new Date().toISOString(),
     site_name: settings.name, view_type: settings.viewType,
-    camera: { facing: settings.facing, requested_fps: settings.targetFps, measured_fps: Math.round(fpsEMA * 10) / 10,
+    camera: { facing: settings.facing, requested_fps: settings.targetFps, measured_fps: Math.round(fpsEMA * 10) / 10, processing_width: settings.processingWidth,
       resolution: { width: track.width || null, height: track.height || null } },
     data_policy: "observations-only (no images, no footage)",
     counting: { mode: "line_crossing", direction_mode: settings.directionMode, sensitivity_threshold: settings.sensitivity, minimum_blob_area_px: settings.minSize, cooldown_ms: settings.cooldownMs, minimum_track_duration_ms: settings.minDurationMs },

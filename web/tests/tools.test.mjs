@@ -142,11 +142,12 @@ const fakeVideo = {
 };
 const fakeOverlay = { clientWidth: 320, clientHeight: 240, width: 0, height: 0 };
 const fakeWork = { width: 0, height: 0 };
+let dynamicProcessingWidth = 160;
 const camera = createCameraController({
   video: fakeVideo,
   overlay: fakeOverlay,
   workCanvas: fakeWork,
-  processingWidth: 160,
+  processingWidth: () => dynamicProcessingWidth,
   settings: { facing: "user", resolution: "low", targetFps: 8, mirror: true },
   statusLine: { textContent: "" },
   resolutionWidths: { low: 320 },
@@ -158,6 +159,9 @@ ok("camera: attaches stream to video", fakeVideo.srcObject === fakeStream);
 ok("camera: applies mirror class", fakeVideo.classList.mirrored === true);
 ok("camera: sizes overlay", fakeOverlay.width === 320 && fakeOverlay.height === 240);
 ok("camera: sizes work canvas by video ratio", fakeWork.width === 160 && fakeWork.height === 120);
+dynamicProcessingWidth = 320;
+camera.resizeOverlay();
+ok("camera: resizes work canvas from dynamic processing width", fakeWork.width === 320 && fakeWork.height === 240);
 camera.stopCamera();
 ok("camera: stop marks off", camera.isOn() === false);
 ok("camera: stop stops tracks", stoppedTrack === true);
