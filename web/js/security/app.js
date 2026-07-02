@@ -8,14 +8,13 @@ import { pickMotionEvent } from "../tools/motion-trigger.js";
 import { makeZip } from "../tools/zip.js";
 import { shareOrDownloadMedia } from "../tools/share.js";
 import { openObservationStore } from "../engine/store.js";
+import { createCameraController } from "../tools/camera-controller.js";
 import { createCoverMapper } from "../tools/cover-map.js";
 import { createSettingsBinder } from "../tools/settings.js";
 import { initWarnings } from "../tools/warnings.js";
 
 const USE = "security";
 const PROC_W = 176;
-const RES_WIDTH = { low: 320, medium: 640, high: 1280 };
-
 const settings = {
   facing: "environment",
   resolution: "medium",
@@ -41,8 +40,6 @@ const work = document.createElement("canvas");
 const wctx = work.getContext("2d", { willReadFrequently: true });
 
 let procH = 132;
-let stream = null;
-let cameraOn = false;
 let observing = false;
 let store = null;
 let sessionId = null;
@@ -62,6 +59,16 @@ let viewerIndex = 0;
 let metadataVisible = true;
 let currentImageUrl = null;
 
+const camera = createCameraController({
+  video: cam,
+  overlay: draw,
+  workCanvas: work,
+  processingWidth: PROC_W,
+  settings,
+  statusLine,
+  onResize: ({ processingHeight }) => { procH = processingHeight; },
+});
+
 removeFloatingThemePicker();
 document.addEventListener("DOMContentLoaded", removeFloatingThemePicker);
 function removeFloatingThemePicker() {
@@ -76,42 +83,18 @@ const { frameToScreen } = createCoverMapper({
 });
 
 async function startCamera() {
-  stopStream();
-  statusLine.textContent = "requesting camera...";
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: settings.facing },
-        width: { ideal: RES_WIDTH[settings.resolution] },
-        frameRate: { ideal: settings.targetFps },
-      },
-      audio: false,
-    });
-  } catch (e) {
-    statusLine.textContent = "camera failed: " + e.name + " - " + e.message;
-    return;
-  }
-  cam.srcObject = stream;
-  cam.classList.toggle("mirror", settings.mirror);
-  cam.play().catch(() => {});
-  cameraOn = true;
+  const stream = await camera.start();
+  if (!stream) return;
   prevGray = null;
   tracker = createMultiTracker({ maxLost: settings.maxLost });
   $("btnSwitch").disabled = false;
-  resizeOverlay();
   startObserving();
   loop();
 }
 
-function stopStream() {
-  if (stream) stream.getTracks().forEach((t) => t.stop());
-  stream = null;
-}
-
 function stopCamera() {
   observing = false;
-  cameraOn = false;
-  stopStream();
+  camera.stopCamera();
   cancelAnimationFrame(rafId);
   dctx.clearRect(0, 0, draw.width, draw.height);
   prevGray = null;
@@ -121,30 +104,13 @@ function stopCamera() {
   statusLine.textContent = "Stopped.";
 }
 
-function requestFullscreen() {
-  const el = document.documentElement;
-  if (document.fullscreenElement) return Promise.resolve();
-  if (el.requestFullscreen) {
-    return el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
-  } else if (el.webkitRequestFullscreen) {
-    el.webkitRequestFullscreen();
-  }
-  return Promise.resolve();
-}
-
 function resizeOverlay() {
-  draw.width = draw.clientWidth;
-  draw.height = draw.clientHeight;
-  if (cam.videoWidth) procH = Math.round(PROC_W * cam.videoHeight / cam.videoWidth);
-  if (work.width !== PROC_W || work.height !== procH) {
-    work.width = PROC_W;
-    work.height = procH;
-  }
+  camera.resizeOverlay();
 }
-window.addEventListener("resize", () => { if (cameraOn) resizeOverlay(); });
+window.addEventListener("resize", () => { if (camera.isOn()) resizeOverlay(); });
 
 function loop() {
-  if (!cameraOn) return;
+  if (!camera.isOn()) return;
   rafId = requestAnimationFrame(loop);
 
   const now = performance.now();
@@ -272,8 +238,8 @@ function render(tracks) {
 }
 
 $("btnCamera").addEventListener("click", async () => {
-  if (!cameraOn) {
-    await requestFullscreen();
+  if (!camera.isOn()) {
+    await camera.requestFullscreen();
     startCamera();
     return;
   }
@@ -284,7 +250,7 @@ $("btnCamera").addEventListener("click", async () => {
 $("btnSwitch").addEventListener("click", () => {
   settings.facing = settings.facing === "environment" ? "user" : "environment";
   $("setFacing").value = settings.facing;
-  if (cameraOn) startCamera();
+  if (camera.isOn()) startCamera();
 });
 
 function startObserving() {
@@ -305,10 +271,10 @@ function stopObserving() {
 function updatePrimaryButton() {
   const b = $("btnCamera");
   b.classList.toggle("observing", observing);
-  b.classList.toggle("primary", !cameraOn);
-  b.classList.toggle("go", cameraOn && !observing);
+  b.classList.toggle("primary", !camera.isOn());
+  b.classList.toggle("go", camera.isOn() && !observing);
   b.disabled = false;
-  b.textContent = !cameraOn ? "Start camera" : observing ? "Pause" : "Resume";
+  b.textContent = !camera.isOn() ? "Start camera" : observing ? "Pause" : "Resume";
 }
 
 function makeSessionId() {
@@ -334,8 +300,8 @@ const { bind, bindNumberPair } = createSettingsBinder({
   $,
   settings,
   onChange: ({ key }) => {
-    if ((key === "resolution" || key === "facing") && cameraOn) startCamera();
-    if (key === "mirror") cam.classList.toggle("mirror", settings.mirror);
+    if ((key === "resolution" || key === "facing") && camera.isOn()) startCamera();
+    if (key === "mirror") camera.applyMirror();
     if (key === "showOverlay") render([]);
   },
 });
@@ -492,7 +458,7 @@ $("btnCsv").addEventListener("click", async () => {
 
 $("btnJson").addEventListener("click", async () => {
   const observations = await store.list({ use: USE, limit: 100000 });
-  const track = stream?.getVideoTracks?.()[0]?.getSettings?.() || {};
+  const track = camera.getStream()?.getVideoTracks?.()[0]?.getSettings?.() || {};
   const session = {
     schema: "lookout.security.session.v1",
     session_id: sessionId,

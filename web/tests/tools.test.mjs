@@ -2,6 +2,7 @@
 // Run:  node web/tests/tools.test.mjs
 import { pickMotionEvent } from "../js/tools/motion-trigger.js";
 import { clipEventAction, shouldFinalizeClip } from "../js/tools/clip-series.js";
+import { cameraConstraints, createCameraController } from "../js/tools/camera-controller.js";
 import { coverMap, frameToScreenPoint, screenToFramePoint } from "../js/tools/cover-map.js";
 import { createSettingsBinder } from "../js/tools/settings.js";
 import { makeZip } from "../js/tools/zip.js";
@@ -114,6 +115,52 @@ ok("settings: number pair syncs controls", controls.range.value === 10 && contro
 controls.number.value = "2";
 controls.number.dispatch("change");
 ok("settings: number pair commits on change", committed?.key === "delayMs" && committed?.value === 2000);
+
+// camera controller
+const constraints = cameraConstraints({
+  facing: "environment",
+  resolution: "medium",
+  targetFps: 12,
+}, { medium: 640 });
+ok("camera: constraints set facing", constraints.video.facingMode.ideal === "environment");
+ok("camera: constraints set resolution width", constraints.video.width.ideal === 640);
+ok("camera: constraints set target fps", constraints.video.frameRate.ideal === 12);
+let stoppedTrack = false;
+const fakeStream = {
+  getTracks: () => [{ stop: () => { stoppedTrack = true; } }],
+};
+Object.defineProperty(globalThis, "navigator", {
+  configurable: true,
+  value: { mediaDevices: { getUserMedia: async () => fakeStream } },
+});
+const fakeVideo = {
+  videoWidth: 640,
+  videoHeight: 480,
+  srcObject: null,
+  classList: { mirrored: false, toggle(name, enabled) { if (name === "mirror") this.mirrored = enabled; } },
+  play: async () => {},
+};
+const fakeOverlay = { clientWidth: 320, clientHeight: 240, width: 0, height: 0 };
+const fakeWork = { width: 0, height: 0 };
+const camera = createCameraController({
+  video: fakeVideo,
+  overlay: fakeOverlay,
+  workCanvas: fakeWork,
+  processingWidth: 160,
+  settings: { facing: "user", resolution: "low", targetFps: 8, mirror: true },
+  statusLine: { textContent: "" },
+  resolutionWidths: { low: 320 },
+});
+ok("camera: starts off", camera.isOn() === false);
+ok("camera: start returns stream", await camera.start() === fakeStream);
+ok("camera: marks on after start", camera.isOn() === true);
+ok("camera: attaches stream to video", fakeVideo.srcObject === fakeStream);
+ok("camera: applies mirror class", fakeVideo.classList.mirrored === true);
+ok("camera: sizes overlay", fakeOverlay.width === 320 && fakeOverlay.height === 240);
+ok("camera: sizes work canvas by video ratio", fakeWork.width === 160 && fakeWork.height === 120);
+camera.stopCamera();
+ok("camera: stop marks off", camera.isOn() === false);
+ok("camera: stop stops tracks", stoppedTrack === true);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

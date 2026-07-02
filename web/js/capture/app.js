@@ -8,14 +8,13 @@ import { crossingDirection, countsForMode } from "../counting/crossing.js";
 import { makeZip } from "../tools/zip.js";
 import { shareOrDownloadMedia } from "../tools/share.js";
 import { openObservationStore } from "../engine/store.js";
+import { createCameraController } from "../tools/camera-controller.js";
 import { createCoverMapper } from "../tools/cover-map.js";
 import { createSettingsBinder } from "../tools/settings.js";
 import { initWarnings } from "../tools/warnings.js";
 
 const USE = "capture";
 const PROC_W = 176; // processing width; keep small for old phones
-
-const RES_WIDTH = { low: 320, medium: 640, high: 1280 };
 
 const settings = {
   facing: "environment", resolution: "medium", targetFps: 10, mirror: false,
@@ -32,6 +31,15 @@ const statusLine = $("status");
 const work = document.createElement("canvas");
 const wctx = work.getContext("2d", { willReadFrequently: true });
 let procH = 132;
+const camera = createCameraController({
+  video: cam,
+  overlay: draw,
+  workCanvas: work,
+  processingWidth: PROC_W,
+  settings,
+  statusLine,
+  onResize: ({ processingHeight }) => { procH = processingHeight; },
+});
 
 removeFloatingThemePicker();
 document.addEventListener("DOMContentLoaded", removeFloatingThemePicker);
@@ -41,7 +49,7 @@ function removeFloatingThemePicker() {
 }
 
 // ── State ────────────────────────────────────────────────────────────────
-let stream = null, cameraOn = false, observing = false;
+let observing = false;
 let store = null, sessionId = null;
 let prevGray = null, tracker = createMultiTracker();
 let line = null; // { a:{x,y}, b:{x,y} } in intrinsic-frame normalised coords
@@ -66,28 +74,10 @@ const { screenToFrame, frameToScreen } = createCoverMapper({
 
 // ── Camera ─────────────────────────────────────────────────────────────────
 async function startCamera({ drawLineAfterStart = false } = {}) {
-  stopStream();
-  statusLine.textContent = "requesting camera…";
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: settings.facing },
-        width: { ideal: RES_WIDTH[settings.resolution] },
-        frameRate: { ideal: settings.targetFps },
-      },
-      audio: false,
-    });
-  } catch (e) {
-    statusLine.textContent = "camera failed: " + e.name + " — " + e.message;
-    return;
-  }
-  cam.srcObject = stream;
-  cam.classList.toggle("mirror", settings.mirror);
-  cam.play().catch(() => {});
-  cameraOn = true;
+  const stream = await camera.start();
+  if (!stream) return;
   for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = false;
   updatePrimaryButton();
-  resizeOverlay();
   if (drawLineAfterStart) beginLineDrawing();
   else statusLine.textContent = observing
     ? "Observing. Counting crossings."
@@ -97,44 +87,26 @@ async function startCamera({ drawLineAfterStart = false } = {}) {
   loop();
 }
 
-function stopStream() {
-  if (stream) stream.getTracks().forEach((t) => t.stop());
-  stream = null;
-}
 function stopCamera() {
-  observing = false; cameraOn = false;
+  observing = false;
   drawMode = false; pendingA = null;
   document.body.classList.remove("placing-line");
-  stopStream();
+  camera.stopCamera();
   cancelAnimationFrame(rafId);
   dctx.clearRect(0, 0, draw.width, draw.height);
   updatePrimaryButton();
   for (const id of ["btnSwitch", "btnDraw"]) $(id).disabled = true;
 }
 
-function requestFullscreen() {
-  const el = document.documentElement;
-  if (document.fullscreenElement) return Promise.resolve();
-  if (el.requestFullscreen) {
-    return el.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
-  } else if (el.webkitRequestFullscreen) {
-    el.webkitRequestFullscreen();
-  }
-  return Promise.resolve();
-}
-
 // ── Overlay sizing ──────────────────────────────────────────────────────────
 function resizeOverlay() {
-  draw.width = draw.clientWidth;
-  draw.height = draw.clientHeight;
-  if (cam.videoWidth) procH = Math.round(PROC_W * cam.videoHeight / cam.videoWidth);
-  if (work.width !== PROC_W) { work.width = PROC_W; work.height = procH; }
+  camera.resizeOverlay();
 }
-window.addEventListener("resize", () => { if (cameraOn) resizeOverlay(); });
+window.addEventListener("resize", () => { if (camera.isOn()) resizeOverlay(); });
 
 // ── Processing + render loop ────────────────────────────────────────────────
 function loop() {
-  if (!cameraOn) return;
+  if (!camera.isOn()) return;
   rafId = requestAnimationFrame(loop);
 
   const now = performance.now();
@@ -349,8 +321,8 @@ draw.addEventListener("pointerdown", (e) => {
 
 // ── UI wiring ────────────────────────────────────────────────────────────────
 $("btnCamera").addEventListener("click", async () => {
-  if (!cameraOn) {
-    await requestFullscreen();
+  if (!camera.isOn()) {
+    await camera.requestFullscreen();
     startCamera({ drawLineAfterStart: true });
     return;
   }
@@ -361,7 +333,7 @@ $("btnCamera").addEventListener("click", async () => {
 $("btnSwitch").addEventListener("click", () => {
   settings.facing = settings.facing === "environment" ? "user" : "environment";
   $("setFacing").value = settings.facing;
-  if (cameraOn) startCamera();
+  if (camera.isOn()) startCamera();
 });
 $("btnDraw").addEventListener("click", () => {
   beginLineDrawing();
@@ -394,9 +366,9 @@ function stopObserving() {
 function updatePrimaryButton() {
   const b = $("btnCamera");
   b.classList.toggle("observing", observing);
-  b.classList.toggle("primary", !cameraOn);
-  b.classList.toggle("go", cameraOn && !!line && !observing);
-  if (!cameraOn) {
+  b.classList.toggle("primary", !camera.isOn());
+  b.classList.toggle("go", camera.isOn() && !!line && !observing);
+  if (!camera.isOn()) {
     b.disabled = false;
     b.textContent = "Start camera";
   } else if (!line) {
@@ -432,8 +404,8 @@ const { bind, bindNumberPair } = createSettingsBinder({
   $,
   settings,
   onChange: ({ key }) => {
-    if ((key === "resolution" || key === "facing" || key === "targetFps") && cameraOn) startCamera();
-    if (key === "mirror") cam.classList.toggle("mirror", settings.mirror);
+    if ((key === "resolution" || key === "facing" || key === "targetFps") && camera.isOn()) startCamera();
+    if (key === "mirror") camera.applyMirror();
     if (key === "maxLost") tracker = createMultiTracker({ maxLost: settings.maxLost });
   },
 });
@@ -443,7 +415,7 @@ bind("setName", "name"); bind("setViewType", "viewType");
 bind("setDirection", "directionMode");
 bind("setCaptureStills", "captureStills"); // Capture toggle binding!
 bindNumberPair("setFps", "setFpsNumber", "targetFps", {
-  onCommit: () => { if (cameraOn) startCamera(); },
+  onCommit: () => { if (camera.isOn()) startCamera(); },
 });
 bindNumberPair("setSensitivity", "setSensitivityNumber", "sensitivity");
 bindNumberPair("setMinSize", "setMinSizeNumber", "minSize");
@@ -654,7 +626,7 @@ $("btnJson").addEventListener("click", async () => {
       processedObs.push(copy);
     }
 
-    const track = stream?.getVideoTracks?.()[0]?.getSettings?.() || {};
+    const track = camera.getStream()?.getVideoTracks?.()[0]?.getSettings?.() || {};
     const session = {
       schema: "lookout.capture.session.v1",
       session_id: sessionId, created_at_utc: new Date().toISOString(),
@@ -707,7 +679,7 @@ $("btnShareBundle").addEventListener("click", async () => {
     const mediaList = await store.listMedia({ use: USE, kind: "still", limit: 500 });
     const csvText = await store.exportCSV({ use: USE });
     
-    const track = stream?.getVideoTracks?.()[0]?.getSettings?.() || {};
+    const track = camera.getStream()?.getVideoTracks?.()[0]?.getSettings?.() || {};
     const session = {
       schema: "lookout.capture.session.v1",
       session_id: sessionId, created_at_utc: new Date().toISOString(),
