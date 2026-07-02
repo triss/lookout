@@ -1,9 +1,9 @@
-// Security camera use. Full-screen camera watching the whole view for motion.
+// Security Camera with stills. Full-screen camera watching the whole view for motion.
 // Logs a timestamped event, and optionally a still, whenever sustained motion
 // is seen. Reuses existing engine/CV/store modules only; no backend changes.
 import { toGray } from "../engine/gray.js";
-import { extractBlobs } from "../counting/blobs.js";
-import { createMultiTracker } from "../counting/tracker.js";
+import { extractBlobs } from "../vision/blobs.js";
+import { createMultiTracker } from "../vision/tracker.js";
 import { pickMotionEvent } from "../tools/motion-trigger.js";
 import { makeZip } from "../tools/zip.js";
 import { shareOrDownloadMedia } from "../tools/share.js";
@@ -13,7 +13,7 @@ import { createCoverMapper } from "../tools/cover-map.js";
 import { createSettingsBinder } from "../tools/settings.js";
 import { initWarnings } from "../tools/warnings.js";
 
-const USE = "security";
+const USE = "security-stills";
 const DEFAULT_PROCESSING_WIDTH = 176;
 const settings = {
   facing: "environment",
@@ -21,7 +21,7 @@ const settings = {
   targetFps: 10,
   mirror: false,
   processingWidth: DEFAULT_PROCESSING_WIDTH,
-  name: "security_watch",
+  name: "security-stills",
   viewType: "doorway",
   sensitivity: 24,
   minSize: 14,
@@ -69,13 +69,6 @@ const camera = createCameraController({
   statusLine,
   onResize: ({ processingHeight }) => { procH = processingHeight; },
 });
-
-removeFloatingThemePicker();
-document.addEventListener("DOMContentLoaded", removeFloatingThemePicker);
-function removeFloatingThemePicker() {
-  const floatingThemePicker = document.getElementById("themePicker");
-  if (floatingThemePicker) floatingThemePicker.remove();
-}
 
 const { frameToScreen } = createCoverMapper({
   video: cam,
@@ -449,7 +442,7 @@ async function refreshExportPanel() {
 
 function download(text, type, ext) {
   const blob = new Blob([text], { type });
-  const name = `lookout-security-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`;
+  const name = `lookout-security-stills-${new Date().toISOString().replace(/[:.]/g, "-")}.${ext}`;
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = name;
@@ -468,7 +461,7 @@ $("btnJson").addEventListener("click", async () => {
   const observations = await store.list({ use: USE, limit: 100000 });
   const track = camera.getStream()?.getVideoTracks?.()[0]?.getSettings?.() || {};
   const session = {
-    schema: "lookout.security.session.v1",
+    schema: "lookout.security-stills.session.v1",
     session_id: sessionId,
     created_at_utc: new Date().toISOString(),
     site_name: settings.name,
@@ -492,7 +485,7 @@ $("btnJson").addEventListener("click", async () => {
     data_policy: "observations and optional event stills stay on-device; nothing shared unless exported",
   };
   download(JSON.stringify({
-    schema: "lookout.security.export.v1",
+    schema: "lookout.security-stills.export.v1",
     exported_utc: new Date().toISOString(),
     session,
     observations: observations.reverse(),
@@ -518,7 +511,7 @@ $("btnShareBundle").addEventListener("click", async () => {
     const mediaList = await store.listMedia({ use: USE, kind: "still", limit: 500 });
     const csvText = await store.exportCSV({ use: USE });
     const jsonText = JSON.stringify({
-      schema: "lookout.security.export.v1",
+      schema: "lookout.security-stills.export.v1",
       exported_utc: new Date().toISOString(),
       observations: observations.reverse(),
     }, null, 2);
@@ -533,7 +526,7 @@ $("btnShareBundle").addEventListener("click", async () => {
       }
     }
     const zipBlob = makeZip(files);
-    const zipName = `lookout-security-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`;
+    const zipName = `lookout-security-stills-${new Date().toISOString().replace(/[:.]/g, "-")}.zip`;
     const fileObj = typeof File !== "undefined" ? new File([zipBlob], zipName, { type: zipBlob.type }) : null;
     if (fileObj && navigator.canShare?.({ files: [fileObj] })) {
       try {

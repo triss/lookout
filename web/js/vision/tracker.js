@@ -1,10 +1,10 @@
 // Multi-object tracker: greedy nearest-neighbour assignment of blobs to tracks
 // across frames. Pure, no DOM. Each track keeps its previous centroid (so a
-// motion segment prev→cur can be tested against the counting line), how many
-// frames it has been seen, and whether it has already been counted.
+// motion segment prev→cur can be tested by a Use), how many frames it has
+// been seen, and whether a Use has already recorded it.
 //
-// Deliberately simple: no Kalman, no Hungarian. Good enough for counting a
-// handful of movers through a line on an old phone.
+// Deliberately simple: no Kalman, no Hungarian. Good enough for tracking a
+// handful of movers on an old phone.
 
 export function createMultiTracker(opts = {}) {
   const maxDist = opts.maxDist ?? 48;   // px in processing space

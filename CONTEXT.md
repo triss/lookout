@@ -21,7 +21,7 @@ A shareable result made from observations, usually privacy-preserving. Findings 
 _Avoid_: Aggregate, summary
 
 **Footage**:
-Raw or clipped camera imagery from a view. Footage may exist locally, but should leave the device only through explicit user action; the default sharing unit is a finding.
+Raw or clipped camera imagery from a view. Footage may exist locally, but should leave the device only through explicit user action; the default sharing unit is a finding. Whether a use records footage is part of its privacy promise.
 _Avoid_: Data, evidence
 
 **Place**:
@@ -37,5 +37,5 @@ The mapping information that makes real-world measurements meaningful for one vi
 _Avoid_: Place calibration
 
 **Use**:
-A user-facing purpose for Lookout, such as vehicle speed, counts and footfall, dwell and occupancy, wildlife logging, or environmental change. The same term is used in code for the configuration that declares how that purpose uses the pipeline.
+A user-facing purpose for Lookout, such as vehicle speed, counts and footfall, dwell and occupancy, wildlife logging, or environmental change. The same term is used in code for the configuration that declares how that purpose uses the pipeline. Similar observation logic can still be separate uses when they make different privacy promises, such as line crossings with observations only, line crossings with stills, or security camera clips.
 _Avoid_: Preset, mode

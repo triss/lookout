@@ -1,10 +1,10 @@
 // Line-crossing geometry. Pure functions, no DOM — unit-tested headlessly.
 //
-// A counting line is a segment A→B. The two sides are labelled A and B: the
+// A line-crossing segment is A→B. The two sides are labelled A and B: the
 // "A side" is the left of the directed segment A→B (positive orientation).
 // A crossing is recorded only when a track's motion segment actually
 // intersects the line segment (not merely changes side of the infinite line),
-// so movement that passes beside the line's ends is not counted.
+// so movement that passes beside the line's ends is not recorded as a crossing.
 
 export function orient(a, b, c) {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
@@ -37,8 +37,8 @@ export function crossingDirection(prev, cur, a, b) {
   return "unknown";
 }
 
-// Should this crossing be counted, given the user's direction mode?
-// mode: "both" | "a_to_b" | "b_to_a" | "separate" (separate counts everything,
+// Should this crossing be recorded, given the user's direction mode?
+// mode: "both" | "a_to_b" | "b_to_a" | "separate" (separate keeps everything,
 // keeping the recorded direction).
 export function countsForMode(direction, mode) {
   if (mode === "a_to_b") return direction === "A_to_B";

@@ -1,7 +1,7 @@
-/* Full-screen counting UI, layered over the camera. Reuses the theme tokens
+/* Full-screen camera Use UI, layered over the camera. Reuses the theme tokens
    from style.css. */
 
-html, body.page-counting {
+html, body.page-camera-use {
   height: 100%;
   margin: 0;
   overflow: hidden;
@@ -110,8 +110,6 @@ html, body.page-counting {
   text-align: center;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .65);
 }
-.page-counting #themePicker { display: none !important; }
-
 /* Sliding sheets */
 .sheet {
   position: fixed;

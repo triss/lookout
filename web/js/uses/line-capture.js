@@ -1,11 +1,11 @@
 import { defineUse } from "../engine/use.js";
 import { flowPerHour } from "../engine/derive.js";
 
-// Capture & count: things crossing a line, capturing stills on crossing.
+// Line crossings with stills: things crossing a line, capturing stills on crossing.
 export default defineUse({
-  id: "capture",
-  name: "Count Line Crossings and Capture Stills",
-  description: "Count crossings and capture still images of each event locally on the device.",
+  id: "line-capture",
+  name: "Line crossings with stills",
+  description: "Count line crossings and capture still images of each event locally on the device.",
   mode: "motion",
   locate: "BearingOnly",
   measurements: ["crossings", "direction", "bearing_deg", "media"],

@@ -1,8 +1,8 @@
 // Security clips use. Keeps a short rolling video buffer, then saves a clip
 // when sustained motion is detected. Existing store/media APIs are reused.
 import { toGray } from "../engine/gray.js";
-import { extractBlobs } from "../counting/blobs.js";
-import { createMultiTracker } from "../counting/tracker.js";
+import { extractBlobs } from "../vision/blobs.js";
+import { createMultiTracker } from "../vision/tracker.js";
 import { pickMotionEvent } from "../tools/motion-trigger.js";
 import { clipEventAction, shouldFinalizeClip } from "../tools/clip-series.js";
 import { makeZip } from "../tools/zip.js";
@@ -13,7 +13,7 @@ import { createCoverMapper } from "../tools/cover-map.js";
 import { createSettingsBinder } from "../tools/settings.js";
 import { initWarnings } from "../tools/warnings.js";
 
-const USE = "security_clips";
+const USE = "security-clips";
 const DEFAULT_PROCESSING_WIDTH = 176;
 const RECORDER_SLICE_MS = 1000;
 
@@ -23,7 +23,7 @@ const settings = {
   targetFps: 10,
   mirror: false,
   processingWidth: DEFAULT_PROCESSING_WIDTH,
-  name: "security_clips",
+  name: "security-clips",
   viewType: "doorway",
   sensitivity: 24,
   minSize: 14,
@@ -81,13 +81,6 @@ const camera = createCameraController({
   beforeStop: () => stopRecorder(),
   onResize: ({ processingHeight }) => { procH = processingHeight; },
 });
-
-removeFloatingThemePicker();
-document.addEventListener("DOMContentLoaded", removeFloatingThemePicker);
-function removeFloatingThemePicker() {
-  const floatingThemePicker = document.getElementById("themePicker");
-  if (floatingThemePicker) floatingThemePicker.remove();
-}
 
 const { frameToScreen } = createCoverMapper({
   video: cam,
@@ -579,7 +572,7 @@ $("btnJson").addEventListener("click", async () => {
   const observations = await store.list({ use: USE, limit: 100000 });
   const track = camera.getStream()?.getVideoTracks?.()[0]?.getSettings?.() || {};
   const session = {
-    schema: "lookout.security_clips.session.v1",
+    schema: "lookout.security-clips.session.v1",
     session_id: sessionId,
     created_at_utc: new Date().toISOString(),
     site_name: settings.name,
@@ -604,7 +597,7 @@ $("btnJson").addEventListener("click", async () => {
     data_policy: "observations and clips stay on-device; nothing shared unless exported",
   };
   download(JSON.stringify({
-    schema: "lookout.security_clips.export.v1",
+    schema: "lookout.security-clips.export.v1",
     exported_utc: new Date().toISOString(),
     session,
     observations: observations.reverse(),
@@ -630,7 +623,7 @@ $("btnShareBundle").addEventListener("click", async () => {
     const mediaList = await store.listMedia({ use: USE, limit: 500 });
     const csvText = await store.exportCSV({ use: USE });
     const jsonText = JSON.stringify({
-      schema: "lookout.security_clips.export.v1",
+      schema: "lookout.security-clips.export.v1",
       exported_utc: new Date().toISOString(),
       observations: observations.reverse(),
     }, null, 2);

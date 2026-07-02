@@ -5,8 +5,8 @@ import dwell from "./dwell.js";
 import wildlife from "./wildlife.js";
 import environment from "./environment.js";
 import drones from "./drones.js";
-import security from "./security.js";
-import capture from "./capture.js";
+import securityStills from "./security-stills.js";
+import lineCapture from "./line-capture.js";
 
-export { speed, count, dwell, wildlife, environment, drones, security, capture };
+export { speed, count, dwell, wildlife, environment, drones, securityStills, lineCapture };
 export { listUses, getUse } from "../engine/use.js";

@@ -3,23 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>lookout · security camera</title>
+  <title>lookout · line crossings with stills</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/counting.css">
-  <link rel="stylesheet" href="css/capture.css">
+  <link rel="stylesheet" href="css/camera-use.css">
+  <link rel="stylesheet" href="css/media-viewer.css">
   <script src="js/theme.js?v=settings-theme-only"></script>
 </head>
-<body class="page-counting">
+<body class="page-camera-use">
+  <!-- Full-screen camera -->
   <div id="stage">
     <video id="cam" playsinline muted autoplay aria-label="Live camera preview"></video>
-    <canvas id="draw" aria-label="Motion overlay"></canvas>
+    <canvas id="draw" aria-label="Counting overlay"></canvas>
   </div>
 
-  <header id="hudTop" aria-label="Live security totals">
+  <!-- Top HUD: live totals + status -->
+  <header id="hudTop" aria-label="Live totals">
     <div class="chips">
-      <span class="chip chip-total"><b id="cEvents">0</b> events</span>
+      <span class="chip chip-total"><b id="cTotal">0</b> total</span>
+      <span class="chip"><b id="cAB">0</b> A→B</span>
+      <span class="chip"><b id="cBA">0</b> B→A</span>
       <span class="chip"><b id="cTracks">0</b> tracks</span>
-      <span class="chip"><b id="cFps">-</b> fps</span>
+      <span class="chip"><b id="cFps">–</b> fps</span>
     </div>
     <div class="chips right">
       <span id="warnBattery" class="chip chip-warn" hidden></span>
@@ -27,64 +31,74 @@
     </div>
   </header>
 
+  <!-- Bottom HUD: primary controls -->
   <footer id="hudBottom">
     <div class="row">
       <button id="btnCamera" type="button" class="primary">Start camera</button>
-      <button id="btnSwitch" class="small" type="button" disabled title="Switch camera">Switch camera</button>
-      <button id="btnViewStills" class="small" type="button" title="View stills">Stills</button>
+      <button id="btnSwitch" class="small" type="button" disabled title="Switch camera">⇄ Camera</button>
+      <button id="btnViewStills" class="small" type="button" title="View Stills">🖼️ Stills</button>
     </div>
     <div class="row">
+      <button id="btnDraw" type="button" disabled>Redraw line</button>
       <button id="btnHelp" type="button">How this works</button>
       <button id="btnSettings" type="button">Settings</button>
-      <button id="btnExport" type="button">Share data</button>
+      <button id="btnExport" type="button">Share Data</button>
     </div>
-    <p id="status" role="status" aria-live="polite" class="status-line">Start the camera to watch this view for motion. Stills stay on this device unless you share them.</p>
+    <p id="status" role="status" aria-live="polite" class="status-line">Start the camera, place a line, and observing starts automatically. Captures stills on crossing.</p>
   </footer>
 
+  <!-- HELP / description sheet -->
   <section id="panelHelp" class="sheet" hidden aria-label="How this works">
     <div class="sheet-head"><h2>How this works</h2><button class="sheet-close" data-close>✕</button></div>
     <div class="sheet-body">
-      <p><strong>Motion log, not a cloud camera.</strong> lookout compares small frames on this device, watches for sustained motion in the whole view, and stores timestamped observations. If still capture is enabled, it also saves one JPEG when motion triggers an event.</p>
-      <p>Use it for a doorway, shed, yard, hallway, gate, or shared room where you want a local record of when something moved. The app does not identify people, faces, or vehicles. It records motion events and optional stills for later review.</p>
+      <p><strong>Capture and count crossings.</strong> lookout watches a fixed view, notices movement, and counts each time a moving blob crosses a line you draw. It stores timestamped <em>observations</em> and (if enabled) still JPEG images on this device. No cloud storage, no automated facial recognition, and no continuous footage leaves this phone.</p>
+      <p>This page expands on the basic counting tool by saving a snapshot of the camera at the exact moment a crossing is detected. You can review and page through these snapshots right in the browser using the <strong>Stills</strong> button.</p>
       <ol>
-        <li>Set the phone somewhere stable with a clear view of the area. A shelf, tripod, window ledge, or fixed mount works best.</li>
-        <li>Press <strong>Start camera</strong>. The page asks for fullscreen, starts the camera, and begins watching immediately.</li>
-        <li>Do not move, rotate, or bump the phone once it is watching. If the view changes, pause and restart the camera so the detector settles again.</li>
-        <li>Use <strong>Stills</strong> to review captured images. Use <strong>Share data</strong> only when you deliberately want to export observations or stills.</li>
+        <li>Press <strong>Start camera</strong> and aim at a stable spot.</li>
+        <li>Tap two points to draw your crossing line.</li>
+        <li>Once the line is placed, observing and capturing start automatically.</li>
+        <li>Press the <strong>Stills</strong> button in the bottom HUD at any time to browse, filter, or review captured images and their metadata.</li>
       </ol>
-      <p><strong>Fix common problems in Settings.</strong> If shadows, rain, leaves, or screen reflections trigger too many events, raise <em>Sensitivity threshold</em>, raise <em>Minimum size</em>, or raise <em>Minimum motion duration</em>. If repeated movement creates too many images, raise <em>Event cooldown</em>. If motion is missed, lower <em>Sensitivity threshold</em> or <em>Minimum motion duration</em>. If the phone is slow, lower <em>Target FPS</em> or <em>Resolution</em>.</p>
-      <p class="muted">Stills may contain identifying imagery. They stay in browser storage on this device and are only included when you explicitly share stills or a bundle.</p>
+      <p><strong>What is shared.</strong> Everything stays on this device. Measurements — counts, timestamps and direction — and, when enabled, a still image of each crossing are stored locally in the browser. Nothing leaves the phone automatically. When you tap <strong>Share Data</strong>, the CSV/JSON exports contain <em>measurements only</em>; the captured stills are included only if you explicitly choose <strong>Share Stills</strong> or <strong>Share Bundle</strong>. Turn image capture off any time with <strong>Capture still on crossing</strong> in Settings, and wipe everything with <strong>Clear local observations</strong>.</p>
+      <p class="muted">Stills are kept in the browser's IndexedDB storage. You can clear them at any time in the <strong>Share Data</strong> panel.</p>
     </div>
   </section>
 
+  <!-- SETTINGS sheet -->
   <section id="panelSettings" class="sheet" hidden aria-label="Settings">
     <div class="sheet-head"><h2>Settings</h2><button class="sheet-close" data-close>✕</button></div>
     <div class="sheet-body">
       <fieldset>
-        <legend>Capture</legend>
-        <label class="check"><input type="checkbox" id="setCaptureStills" checked> Capture still on motion event</label>
-        <label class="check"><input type="checkbox" id="setShowOverlay" checked> Show motion overlay</label>
-        <p class="muted">Stills are saved locally in this browser. The overlay is only for setup and checking detection.</p>
+        <legend>Capture Options</legend>
+        <label class="check"><input type="checkbox" id="setCaptureStills" checked> Capture still on crossing</label>
+        <p class="muted">Saves a still image of the camera view in IndexedDB when a line crossing occurs.</p>
       </fieldset>
 
       <fieldset>
-        <legend>Place</legend>
+        <legend>Scene</legend>
         <label>Observation name
-          <input type="text" id="setName" value="security_watch" autocomplete="off">
+          <input type="text" id="setName" value="line-capture" autocomplete="off">
         </label>
         <label>View type
-          <select id="setViewType"><option selected>doorway</option><option>yard</option><option>shed</option><option>hallway</option><option>gate</option><option>room</option><option>other</option></select>
+          <select id="setViewType"><option>path</option><option>doorway</option><option>road</option><option>garden</option><option selected>other</option></select>
         </label>
       </fieldset>
 
       <fieldset>
-        <legend>Motion trigger</legend>
+        <legend>Counting rules</legend>
+        <label>Direction
+          <select id="setDirection">
+            <option value="both">Count both directions together</option>
+            <option value="separate" selected>Count separately by direction</option>
+            <option value="a_to_b">A → B only</option>
+            <option value="b_to_a">B → A only</option>
+          </select>
+        </label>
         <label class="number-control">Sensitivity threshold
           <span class="number-row">
             <input id="setSensitivity" type="range" min="8" max="48" step="1" value="24">
             <input id="setSensitivityNumber" type="number" min="8" max="48" step="1" value="24" inputmode="numeric" aria-label="Sensitivity threshold">
           </span>
-          <span class="muted">Lower numbers notice smaller changes; higher numbers ignore more noise.</span>
         </label>
         <label class="number-control">Minimum size
           <span class="number-row">
@@ -92,16 +106,16 @@
             <input id="setMinSizeNumber" type="number" min="1" max="80" step="1" value="14" inputmode="numeric" aria-label="Minimum blob size">
           </span>
         </label>
-        <label class="number-control">Minimum motion duration (ms)
+        <label class="number-control">Minimum track duration (ms)
           <span class="number-row">
             <input id="setMinDuration" type="range" min="100" max="5000" step="100" value="1000">
-            <input id="setMinDurationNumber" type="number" min="100" max="5000" step="100" value="1000" inputmode="numeric" aria-label="Minimum motion duration in milliseconds">
+            <input id="setMinDurationNumber" type="number" min="100" max="5000" step="100" value="1000" inputmode="numeric" aria-label="Minimum track duration in milliseconds">
           </span>
         </label>
-        <label class="number-control">Event cooldown (ms)
+        <label class="number-control">Count cooldown (ms)
           <span class="number-row">
-            <input id="setCooldown" type="range" min="500" max="30000" step="500" value="5000">
-            <input id="setCooldownNumber" type="number" min="500" max="30000" step="500" value="5000" inputmode="numeric" aria-label="Event cooldown in milliseconds">
+            <input id="setCooldown" type="range" min="250" max="10000" step="250" value="3000">
+            <input id="setCooldownNumber" type="number" min="250" max="10000" step="250" value="3000" inputmode="numeric" aria-label="Count cooldown in milliseconds">
           </span>
         </label>
         <label class="number-control">Maximum lost frames
@@ -140,7 +154,7 @@
 
       <fieldset>
         <legend>Storage</legend>
-        <p class="muted">Observations and enabled stills are stored locally in this browser. Use <strong>Share data</strong> to export, share stills, bundle files, or clear local observations.</p>
+        <p class="muted">Observations and enabled stills are stored locally in this browser. Use <strong>Share Data</strong> to export, share stills, bundle files, or clear local observations.</p>
       </fieldset>
 
       <fieldset>
@@ -154,18 +168,19 @@
           </select>
         </label>
       </fieldset>
+
     </div>
   </section>
 
-  <section id="panelExport" class="sheet" hidden aria-label="Share data">
-    <div class="sheet-head"><h2>Share data</h2><button class="sheet-close" data-close>✕</button></div>
+  <!-- EXPORT sheet -->
+  <section id="panelExport" class="sheet" hidden aria-label="Share Data">
+    <div class="sheet-head"><h2>Share Data</h2><button class="sheet-close" data-close>✕</button></div>
     <div class="sheet-body">
       <dl class="facts">
-        <div><dt>Stored observations</dt><dd id="storedCount">-</dd></div>
-        <div><dt>Stored stills</dt><dd id="storedStills">-</dd></div>
-        <div><dt>Storage used</dt><dd id="storageUsed">-</dd></div>
-        <div><dt>Last event</dt><dd id="lastEvent">-</dd></div>
-        <div><dt>Session</dt><dd id="sessionId">-</dd></div>
+        <div><dt>Stored observations</dt><dd id="storedCount">–</dd></div>
+        <div><dt>Storage used</dt><dd id="storageUsed">–</dd></div>
+        <div><dt>Last event</dt><dd id="lastEvent">–</dd></div>
+        <div><dt>Session</dt><dd id="sessionId">–</dd></div>
       </dl>
       <div class="row wrap">
         <button id="btnCsv" type="button">Share observations CSV</button>
@@ -174,38 +189,46 @@
         <button id="btnShareBundle" type="button" disabled>Share bundle ZIP</button>
       </div>
       <button id="btnClear" type="button" class="danger">Clear local observations</button>
-      <p class="muted">CSV/JSON contain measurements. Stills stay on this device unless you choose <strong>Share stills</strong> or <strong>Share bundle ZIP</strong>.</p>
+      <p class="muted">CSV/JSON contain measurements only. Captured stills stay on this device and are only included when you use <strong>Share Stills</strong> or <strong>Share Bundle</strong>. Nothing is ever uploaded automatically.</p>
     </div>
   </section>
 
+  <!-- STILLS GALLERY / VIEWER -->
   <div id="viewerContainer" class="fullscreen-viewer" hidden>
     <div class="viewer-header">
-      <button id="btnViewerBack" class="viewer-btn">Back</button>
-      <span id="viewerTitle">Security stills</span>
-      <button id="btnToggleMetadata" class="viewer-btn">Hide info</button>
+      <button id="btnViewerBack" class="viewer-btn">← Back</button>
+      <span id="viewerTitle">Captured Stills</span>
+      <button id="btnToggleMetadata" class="viewer-btn">Hide Info</button>
     </div>
+
     <div class="viewer-body">
       <div id="viewerImageContainer">
-        <img id="viewerImg" alt="Captured security still" src="">
+        <img id="viewerImg" alt="Captured event still" src="" />
+
+        <!-- Hidable Metadata Overlay -->
         <div id="viewerMetadata" class="viewer-metadata">
           <div class="meta-row"><strong>Time:</strong> <span id="metaTime"></span></div>
-          <div class="meta-row"><strong>Mode:</strong> <span id="metaMode"></span></div>
+          <div class="meta-row"><strong>Direction:</strong> <span id="metaDirection"></span></div>
           <div class="meta-row"><strong>Track ID:</strong> <span id="metaTrackId"></span></div>
           <div class="meta-row"><strong>Duration:</strong> <span id="metaDuration"></span></div>
           <div class="meta-row"><strong>Confidence:</strong> <span id="metaConfidence"></span></div>
           <div class="meta-row"><strong>Session:</strong> <span id="metaSession"></span></div>
         </div>
       </div>
+
+      <!-- Empty state -->
       <div id="viewerEmpty" hidden>No stills captured yet.</div>
     </div>
+
     <div class="viewer-footer">
-      <button id="btnViewerPrev" class="viewer-btn">Previous</button>
+      <button id="btnViewerPrev" class="viewer-btn">◀ Previous</button>
       <span id="viewerPageNum">0 of 0</span>
-      <button id="btnViewerNext" class="viewer-btn">Next</button>
+      <button id="btnViewerNext" class="viewer-btn">Next ▶</button>
     </div>
   </div>
 
   <div id="scrim" hidden></div>
-  <script type="module" src="js/security/app.js"></script>
+
+  <script type="module" src="js/line-capture/app.js"></script>
 </body>
 </html>

@@ -1,13 +1,13 @@
 import { defineUse } from "../engine/use.js";
 import { byHour } from "../engine/derive.js";
 
-// Security camera: a lightweight, on-device motion log for a doorway, yard, or
+// Security Camera with stills: a lightweight, on-device motion log for a doorway, yard, or
 // shed — not a cloud camera. Built from existing components: no positioning
 // ("none" locate), whole-frame motion events, optional stills, and byHour
 // aggregation.
 export default defineUse({
-  id: "security",
-  name: "Security camera",
+  id: "security-stills",
+  name: "Security Camera with stills",
   description: "Watch a doorway, yard, or shed and log when something moves in the view — a lightweight, on-device motion log with optional stills, not a cloud camera.",
   mode: "motion",
   locate: "none",

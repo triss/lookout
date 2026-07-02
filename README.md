@@ -68,19 +68,26 @@ Under `web/`:
   real resolution + frame rate. **Run this first on any candidate phone.**
 - `web/index.html` — project overview and document index.
 - `web/speed.html`, `web/count.html`, `web/dwell.html`, `web/wildlife.html`,
-  `web/environment.html`, `web/drones.html`, `web/security.html` — one page per
+  `web/environment.html`, `web/drones.html` — one page per
   engine use. Each page contains its own camera scaffold, live engine readout,
   the auditable pipeline-module + configuration breakdown, local observation
   count, CSV/JSON sharing controls, and optional observation-still sharing.
   `web/speed.html` also contains the speed-calibration flow: place the phone,
   let motion/orientation sensors confirm it is still, capture a photo, then mark
   point pairs and enter the real distance between each pair.
-- `web/counting.html` — the first working use MVP: a full-screen camera counting
-  tool. Draw one line, count crossings (with direction A↔B) locally, tune
-  sensitivity/size/duration/cooldown for old phones, and export CSV/JSON. Counts
-  crossings, not people: observations-only by default, no footage, no cloud, with
-  a clear-local-data control. Logic lives in `web/js/counting/` (`blobs`,
-  `tracker`, `crossing`) and is covered by `web/tests/counting.test.mjs`.
+- `web/line-counting.html` — a full-screen line-crossing Use that stores
+  observations only. Draw one line, count crossings locally, tune
+  sensitivity/size/duration/cooldown for old phones, and export CSV/JSON. No
+  stills, no clips, no cloud.
+- `web/line-capture.html` — the same line-crossing measurement with optional
+  still Footage for each crossing, plus an on-device still and metadata browser.
+- `web/security-stills.html` — a whole-view motion Use that stores timestamped
+  observations and optional stills locally.
+- `web/security-clips.html` — a whole-view motion Use that stores one observation
+  per completed clip series, with local video clips around related movement.
+  Generic motion primitives live in `web/js/vision/`; line-crossing geometry
+  lives in `web/js/line-crossing/`. They are covered by
+  `web/tests/vision.test.mjs` and `web/tests/line-crossing.test.mjs`.
 - `web/js/engine/` — the engine, as composable components: `gray`, `detect`
   (motion), `track` (ground-contact), `locate` (pluggable backends — only
   `BearingOnly` is implemented; the rest throw "needs calibration/reference"),
