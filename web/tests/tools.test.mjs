@@ -2,6 +2,7 @@
 // Run:  node web/tests/tools.test.mjs
 import { pickMotionEvent } from "../js/tools/motion-trigger.js";
 import { clipEventAction, shouldFinalizeClip } from "../js/tools/clip-series.js";
+import { makeZip } from "../js/tools/zip.js";
 
 let pass = 0, fail = 0;
 const ok = (name, cond, info) => { console.log((cond ? "PASS " : "FAIL ") + name + (info ? "  " + info : "")); cond ? pass++ : fail++; };
@@ -40,6 +41,17 @@ ok("finalize: false while still within window",
   shouldFinalizeClip({ lastEventT: 1000 }, 8999, { postRollMs: 3000, seriesGapMs: 8000 }) === false);
 ok("finalize: uses postRoll when it is larger",
   shouldFinalizeClip({ lastEventT: 0 }, 10000, { postRollMs: 10000, seriesGapMs: 3000 }) === true);
+
+// makeZip — valid store-only archive structure
+const zipBytes = new Uint8Array(await makeZip([
+  { name: "a.txt", data: new TextEncoder().encode("hello") },
+]).arrayBuffer());
+const zipText = new TextDecoder("latin1").decode(zipBytes);
+ok("zip: local file header signature (PK\\x03\\x04)",
+  zipBytes[0] === 0x50 && zipBytes[1] === 0x4b && zipBytes[2] === 0x03 && zipBytes[3] === 0x04);
+ok("zip: contains the entry name", zipText.includes("a.txt"));
+ok("zip: stores the file data uncompressed", zipText.includes("hello"));
+ok("zip: has end-of-central-directory record", zipText.includes("PK\x05\x06"));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
